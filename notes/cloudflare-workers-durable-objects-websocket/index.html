@@ -1,0 +1,1067 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>Worker, DO và WebSocket</title><link rel="stylesheet" href="../../assets/site.css">
+</head><body>
+<nav class="site-nav" aria-label="Site">
+  <div class="inner">
+    <a class="brand" href="../../">Tech Notes</a>
+    <div class="links"><a href="../../">Home</a></div>
+  </div>
+</nav>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky lesson rail on wide screens + one reading column (~68ch); simulators, code and diagrams use the full column width. Each component of the platform owns one hue, used the same way in prose, diagrams and the simulator. */
+:root {
+  --bg: #f2f4f8; --surface: #ffffff; --sunk: #e9edf3; --ink: #141923; --muted: #576072; --line: #d4d9e3;
+  --accent: #2c55c9;
+  --client: #3c4456; --client-bg: #eceef3;
+  --edge: #3f6690; --edge-bg: #e2eaf4;
+  --worker: #a05605; --worker-bg: #fcefdc;
+  --do: #08715f; --do-bg: #dbf1ec;
+  --store: #5a43b5; --store-bg: #ebe7fa;
+  --warn: #a23c1f; --warn-bg: #fbe6de;
+  --f-display: "Bricolage Grotesque", "Be Vietnam Pro", system-ui, sans-serif;
+  --f-body: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1117; --surface: #151a23; --sunk: #1b212c; --ink: #e3e7ef; --muted: #9aa3b5; --line: #2a3140;
+  --accent: #8eaaff;
+  --client: #c2c8d6; --client-bg: #222834;
+  --edge: #8fb6e6; --edge-bg: #152438;
+  --worker: #f2b468; --worker-bg: #33240f;
+  --do: #5fd2bd; --do-bg: #0f2f2a;
+  --store: #b6a6ff; --store-bg: #231c40;
+  --warn: #f39b7e; --warn-bg: #3a1c12;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0e1117; --surface: #151a23; --sunk: #1b212c; --ink: #e3e7ef; --muted: #9aa3b5; --line: #2a3140;
+  --accent: #8eaaff;
+  --client: #c2c8d6; --client-bg: #222834;
+  --edge: #8fb6e6; --edge-bg: #152438;
+  --worker: #f2b468; --worker-bg: #33240f;
+  --do: #5fd2bd; --do-bg: #0f2f2a;
+  --store: #b6a6ff; --store-bg: #231c40;
+  --warn: #f39b7e; --warn-bg: #3a1c12;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.68;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 72px; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.shell { max-width: 1160px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 40px; }
+@media (min-width: 1100px) { .shell { grid-template-columns: 230px minmax(0, 1fr); } }
+nav.toc { font-size: 14px; }
+@media (min-width: 1100px) { nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); align-self: start; max-height: calc(100vh - 32px); overflow-y: auto; padding-top: 36px; } }
+nav.toc details { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 10px 14px; margin-top: 16px; }
+@media (min-width: 1100px) { nav.toc details { border: 0; background: none; padding: 0; margin: 0; } nav.toc summary { display: none; } }
+nav.toc summary { cursor: pointer; font-weight: 500; }
+nav.toc ol { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; counter-reset: toc; }
+nav.toc li { counter-increment: toc; }
+nav.toc a { display: block; padding: 3px 8px; border-radius: 6px; color: var(--muted); text-decoration: none; }
+nav.toc a::before { content: counter(toc) ". "; font-family: var(--f-mono); font-size: 12px; }
+nav.toc a:hover { background: var(--sunk); color: var(--ink); }
+
+main { min-width: 0; max-width: 800px; }
+header.doc { padding-top: 44px; padding-bottom: 26px; border-bottom: 1px solid var(--line); }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--do); }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; letter-spacing: -.01em; }
+h1 { font-size: clamp(32px, 5.4vw, 46px); line-height: 1.08; margin: 10px 0 14px; font-weight: 700; }
+h2 { font-size: 27px; line-height: 1.2; margin: 64px 0 12px; font-weight: 700; scroll-margin-top: 24px; }
+h2 .num { display: block; font-family: var(--f-mono); font-size: 12.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-bottom: 6px; }
+h3 { font-size: 19px; margin: 34px 0 8px; font-weight: 600; scroll-margin-top: 24px; }
+h4 { font-size: 15.5px; margin: 0 0 4px; font-weight: 600; }
+p, ul, ol { margin: 10px 0; }
+li { margin: 5px 0; }
+.lede { font-size: 18.5px; color: var(--muted); max-width: 62ch; margin: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: var(--muted); margin-top: 18px; }
+.meta b { color: var(--ink); font-weight: 500; }
+
+code, pre { font-family: var(--f-mono); font-size: 13.5px; }
+:not(pre) > code { background: var(--sunk); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; line-height: 1.58; margin: 14px 0; }
+pre .c { color: var(--muted); font-style: italic; }
+.file { font-family: var(--f-mono); font-size: 12px; color: var(--muted); margin: 18px 0 -8px; }
+
+.tbl { overflow-x: auto; margin: 14px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; line-height: 1.55; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+th { font-weight: 600; background: var(--sunk); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 500; }
+
+.box { border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; margin: 18px 0; background: var(--surface); }
+.box > :first-child { margin-top: 0; } .box > :last-child { margin-bottom: 0; }
+.box .lbl { display: block; font-family: var(--f-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.box.key { border-color: var(--do); background: var(--do-bg); } .box.key .lbl { color: var(--do); }
+.box.ana { border-style: dashed; }
+.box.warn { border-color: var(--warn); background: var(--warn-bg); } .box.warn .lbl { color: var(--warn); }
+.box.key ol { padding-left: 22px; }
+.box.key li { font-size: 17px; font-weight: 500; }
+
+.tag { display: inline-block; font-family: var(--f-mono); font-size: 11.5px; padding: 1px 7px; border-radius: 999px; white-space: nowrap; vertical-align: 1px; background: var(--warn-bg); color: var(--warn); }
+.who { font-weight: 600; }
+.who.client { color: var(--client); } .who.edge { color: var(--edge); } .who.worker { color: var(--worker); } .who.do { color: var(--do); } .who.store { color: var(--store); }
+
+.dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 18px; margin: 14px 0; }
+.dl dt { font-weight: 600; }
+.dl dd { margin: 0; }
+.dl.mono dt { font-family: var(--f-mono); font-size: 13.5px; font-weight: 500; color: var(--do); }
+@media (max-width: 600px) { .dl { grid-template-columns: 1fr; gap: 2px; } .dl dd { margin-bottom: 10px; } }
+
+.src { font-size: 13.5px; color: var(--muted); margin-top: 18px; }
+.src a { color: var(--muted); }
+
+figure { margin: 20px 0; }
+.fig-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 12px; }
+.fig-scroll svg { display: block; width: 100%; min-width: 640px; height: auto; color: var(--ink); }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; }
+svg text { font-family: var(--f-body); font-size: 12px; fill: currentColor; }
+svg .t-b { font-weight: 600; }
+svg .t-m { fill: var(--muted); font-size: 11px; }
+svg .t-mono { font-family: var(--f-mono); font-size: 11px; }
+svg .b-client { fill: var(--client-bg); stroke: var(--client); stroke-width: 1.5; }
+svg .b-edge { fill: var(--edge-bg); stroke: var(--edge); stroke-width: 1.5; }
+svg .b-worker { fill: var(--worker-bg); stroke: var(--worker); stroke-width: 1.5; }
+svg .b-do { fill: var(--do-bg); stroke: var(--do); stroke-width: 1.5; }
+svg .b-store { fill: var(--store-bg); stroke: var(--store); stroke-width: 1.5; }
+svg .b-warn { fill: var(--warn-bg); stroke: var(--warn); stroke-width: 1.5; }
+svg .b-plain { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+svg .l { stroke: currentColor; stroke-width: 1.4; fill: none; }
+svg .l-do { stroke: var(--do); stroke-width: 1.8; fill: none; stroke-dasharray: 6 4; }
+svg .l-wait { stroke: var(--muted); stroke-width: 1.4; fill: none; stroke-dasharray: 4 4; }
+svg .f-ink { fill: currentColor; } svg .f-do { fill: var(--do); }
+svg .tx-worker { fill: var(--worker); } svg .tx-do { fill: var(--do); } svg .tx-store { fill: var(--store); } svg .tx-edge { fill: var(--edge); } svg .tx-warn { fill: var(--warn); }
+
+/* Simulator */
+.sim { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); margin: 22px 0; overflow: hidden; }
+.sim-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--sunk); }
+.sim-kicker { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--do); }
+.sim-title { font-family: var(--f-display); font-weight: 600; font-size: 17px; }
+.sim-count { margin-left: auto; font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sim-stage { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 16px 16px 8px; }
+.node { --c: var(--client); --cb: var(--client-bg); border: 1.5px solid var(--line); border-radius: 9px; padding: 8px 9px; min-width: 0; background: var(--bg); display: grid; gap: 3px; align-content: start; transition: border-color .2s, background-color .2s, opacity .2s; }
+.node .nm { font-size: 12.5px; font-weight: 600; color: var(--c); }
+.node .st { font-family: var(--f-mono); font-size: 11.5px; line-height: 1.45; color: var(--muted); overflow-wrap: anywhere; }
+.node.on { border-color: var(--c); background: var(--cb); }
+.node.on .st { color: var(--ink); }
+.node.dim { opacity: .42; }
+.node .q { display: flex; flex-wrap: wrap; gap: 3px; }
+.node .q span { font-family: var(--f-mono); font-size: 11px; padding: 0 6px; border-radius: 4px; background: var(--surface); border: 1px solid var(--c); color: var(--ink); }
+.sim-flow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 4px 16px 0; padding: 8px 12px; border-radius: 8px; background: var(--sunk); font-size: 14px; }
+.sim-flow .arr { color: var(--muted); }
+.sim-flow .lbl { font-family: var(--f-mono); font-size: 12.5px; overflow-wrap: anywhere; min-width: 0; flex: 1 1 220px; }
+.sim-body { padding: 14px 16px 4px; }
+.sim-body p { margin: 4px 0 8px; }
+.sim-body pre { margin: 10px 0 6px; }
+.sim-ctrl { display: flex; gap: 8px; padding: 8px 16px 14px; }
+.sim-ctrl button, .sim-steps button { font: inherit; color: inherit; cursor: pointer; }
+.sim-ctrl button { font-size: 14px; font-weight: 500; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); }
+.sim-ctrl button.next { border-color: var(--do); background: var(--do-bg); color: var(--do); }
+.sim-ctrl button:disabled { opacity: .45; cursor: default; }
+.sim-steps { list-style: none; margin: 0; padding: 10px 16px 14px; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 2px 12px; counter-reset: st; }
+.sim-steps li { margin: 0; counter-increment: st; }
+.sim-steps button { display: flex; gap: 8px; width: 100%; text-align: left; font-size: 13.5px; line-height: 1.4; padding: 5px 8px; border: 0; border-radius: 6px; background: none; color: var(--muted); }
+.sim-steps button::before { content: counter(st); font-family: var(--f-mono); font-size: 12px; min-width: 1.4em; }
+.sim-steps button:hover { background: var(--sunk); color: var(--ink); }
+.sim-steps button[aria-current="step"] { background: var(--do-bg); color: var(--ink); font-weight: 500; }
+@media (max-width: 640px) {
+  .sim-stage { grid-template-columns: 1fr; gap: 6px; }
+  .node { grid-template-columns: 96px minmax(0, 1fr); column-gap: 10px; align-items: baseline; }
+  .node .q { grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) { .node { transition: none; } }
+</style>
+
+<div class="shell">
+<nav class="toc" aria-label="Mục lục">
+  <details open>
+    <summary>Mục lục</summary>
+    <ol>
+      <li><a href="#tong-quan">Bức tranh tổng</a></li>
+      <li><a href="#worker">Worker</a></li>
+      <li><a href="#durable-object">Durable Object</a></li>
+      <li><a href="#vong-doi">Vòng đời của một DO</a></li>
+      <li><a href="#http">Đường đi của request HTTP</a></li>
+      <li><a href="#websocket">Đường đi của WebSocket</a></li>
+      <li><a href="#dong-thoi">Cái gì song song, cái gì xếp hàng</a></li>
+      <li><a href="#alarm">Alarm thay cho setTimeout</a></li>
+      <li><a href="#chi-phi">Cái gì bị tính tiền</a></li>
+      <li><a href="#hieu-lam">Hiểu lầm và thuật ngữ</a></li>
+    </ol>
+  </details>
+</nav>
+
+<main>
+<header class="doc">
+  <div class="eyebrow">Hướng dẫn · đọc kèm spec Room engine</div>
+  <h1>Worker, Durable Object và WebSocket chạy thế nào</h1>
+  <p class="lede">Ai chạy code của bạn, chạy lúc nào, có bao nhiêu bản, dữ liệu nằm ở đâu, và một tin WebSocket đi qua những chỗ nào. Mỗi bài có ví dụ code; bài 4 đến bài 7 có mô phỏng bấm qua từng bước.</p>
+  <div class="meta">
+    <span><b>Kiểm chứng với docs Cloudflare</b> 2026-11-01</span>
+    <span><b>Ví dụ xuyên suốt</b> game <code>cangua</code>, phòng <code>K7QM2P</code></span>
+    <span><b>Đọc</b> khoảng 25 phút</span>
+  </div>
+</header>
+
+<!-- ============ 1 ============ -->
+<h2 id="tong-quan"><span class="num">Bài 1</span>Bức tranh tổng</h2>
+<p>Một request trong hệ thống game đi qua tối đa năm chỗ. Hiểu mỗi chỗ làm gì là hiểu gần hết phần còn lại.</p>
+
+<figure>
+  <div class="fig-scroll">
+  <svg viewBox="0 0 760 320" role="img" aria-label="HTTP đi từ trình duyệt qua edge tới một trong nhiều isolate Worker, rồi tới Durable Object của phòng. Tin WebSocket sau khi nâng cấp đi thẳng từ edge vào Durable Object, không qua Worker.">
+    <defs>
+      <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-ink"/></marker>
+      <marker id="a1d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-do"/></marker>
+    </defs>
+    <text x="385" y="26" text-anchor="middle" class="t-b tx-worker">Worker cangua · nhiều isolate, không nhớ gì</text>
+    <text x="635" y="26" text-anchor="middle" class="t-b tx-do">Durable Object · mỗi tên một bản</text>
+
+    <rect x="10" y="125" width="96" height="60" rx="8" class="b-client"/>
+    <text x="58" y="151" text-anchor="middle" class="t-b">Trình duyệt</text>
+    <text x="58" y="168" text-anchor="middle" class="t-m">An, Bình, …</text>
+
+    <rect x="156" y="40" width="110" height="250" rx="8" class="b-edge"/>
+    <text x="211" y="64" text-anchor="middle" class="t-b tx-edge">Edge</text>
+    <text x="211" y="81" text-anchor="middle" class="t-m">gần người chơi</text>
+    <text x="211" y="262" text-anchor="middle" class="t-m">giữ kết nối</text>
+    <text x="211" y="277" text-anchor="middle" class="t-m">WebSocket</text>
+
+    <line x1="106" y1="155" x2="154" y2="155" class="l" marker-end="url(#a1)"/>
+    <text x="131" y="147" text-anchor="middle" class="t-m">HTTP</text>
+    <text x="131" y="172" text-anchor="middle" class="t-m">WS</text>
+
+    <rect x="310" y="50" width="150" height="50" rx="8" class="b-worker"/>
+    <text x="385" y="80" text-anchor="middle">isolate · máy 1</text>
+    <rect x="310" y="140" width="150" height="50" rx="8" class="b-worker"/>
+    <text x="385" y="170" text-anchor="middle">isolate · máy 2</text>
+    <rect x="310" y="230" width="150" height="50" rx="8" class="b-worker"/>
+    <text x="385" y="260" text-anchor="middle">isolate · máy 3</text>
+
+    <line x1="266" y1="75" x2="308" y2="75" class="l" marker-end="url(#a1)"/>
+    <line x1="266" y1="165" x2="308" y2="165" class="l" marker-end="url(#a1)"/>
+    <line x1="266" y1="255" x2="308" y2="255" class="l" marker-end="url(#a1)"/>
+    <text x="287" y="67" text-anchor="middle" class="t-mono">fetch</text>
+
+    <rect x="520" y="50" width="130" height="50" rx="8" class="b-do"/>
+    <text x="585" y="80" text-anchor="middle" class="t-mono">Room K7QM2P</text>
+    <rect x="520" y="140" width="130" height="50" rx="8" class="b-do"/>
+    <text x="585" y="170" text-anchor="middle" class="t-mono">Room 9ZX4TT</text>
+    <rect x="520" y="230" width="130" height="50" rx="8" class="b-do"/>
+    <text x="585" y="260" text-anchor="middle" class="t-mono">Match mm</text>
+
+    <line x1="460" y1="70" x2="518" y2="70" class="l" marker-end="url(#a1)"/>
+    <line x1="460" y1="158" x2="518" y2="88" class="l" marker-end="url(#a1)"/>
+    <line x1="460" y1="255" x2="518" y2="255" class="l" marker-end="url(#a1)"/>
+    <text x="489" y="62" text-anchor="middle" class="t-mono">RPC</text>
+
+    <rect x="670" y="55" width="80" height="40" rx="6" class="b-store"/>
+    <text x="710" y="80" text-anchor="middle" class="tx-store">SQLite</text>
+    <rect x="670" y="145" width="80" height="40" rx="6" class="b-store"/>
+    <text x="710" y="170" text-anchor="middle" class="tx-store">SQLite</text>
+    <rect x="670" y="235" width="80" height="40" rx="6" class="b-store"/>
+    <text x="710" y="260" text-anchor="middle" class="tx-store">SQLite</text>
+    <line x1="650" y1="75" x2="670" y2="75" class="l"/>
+    <line x1="650" y1="165" x2="670" y2="165" class="l"/>
+    <line x1="650" y1="255" x2="670" y2="255" class="l"/>
+
+    <path d="M266,121 L585,121 L585,103" class="l-do" marker-end="url(#a1d)"/>
+    <text x="388" y="115" text-anchor="middle" class="tx-do">tin WebSocket sau khi nâng cấp</text>
+  </svg>
+  </div>
+  <figcaption>HTTP đi qua một isolate Worker bất kỳ rồi mới tới phòng; hai isolate khác nhau vẫn gọi tới cùng một Room K7QM2P. Sau khi nâng cấp, tin WebSocket đi thẳng từ edge vào Room DO (đường nét đứt), code của Worker không chạy nữa.</figcaption>
+</figure>
+
+<div class="dl">
+  <dt class="who client">Trình duyệt</dt><dd>Chạy UI, gửi request HTTP và mở WebSocket.</dd>
+  <dt class="who edge">Edge</dt><dd>Máy chủ Cloudflare gần người dùng nhất. Nhận kết nối, so URL với route để biết giao cho Worker nào, và giữ kết nối WebSocket kể cả khi phòng đang ngủ.</dd>
+  <dt class="who worker">Worker</dt><dd>Code không trạng thái, chạy cho từng request. Cùng lúc có thể có nhiều bản (isolate) ở nhiều máy.</dd>
+  <dt class="who do">Durable Object</dt><dd>Một object có tên. Mỗi tên có đúng một bản trên toàn thế giới, và bản đó xử lý từng event một.</dd>
+  <dt class="who store">Storage</dt><dd>SQLite riêng của từng Durable Object, nằm cùng máy với nó. Còn mãi cho tới khi bạn xóa.</dd>
+</div>
+
+<div class="box ana">
+  <span class="lbl">Ví von dùng suốt bài</span>
+  <p><b>Worker</b> là quầy lễ tân của một tòa nhà: nhiều nhân viên trực cùng lúc, ai rảnh thì tiếp khách, và không ai nhớ khách hôm qua. Một nhân viên có thể vừa chờ điện thoại cho khách này vừa ghi phiếu cho khách khác.</p>
+  <p><b>Mỗi Durable Object</b> là một phòng họp có đúng một thư ký. Khách của phòng nào cũng phải xếp hàng gặp đúng thư ký phòng đó. Thư ký có trí nhớ ngắn hạn (RAM) và một tủ hồ sơ (storage). Phòng vắng thì thư ký đi ngủ và quên sạch những gì trong đầu, nhưng tủ hồ sơ còn nguyên.</p>
+  <p><b>Các đường dây WebSocket</b> cắm ở tổng đài dưới sảnh (edge), nên không đứt khi thư ký ngủ. Chuông reo thì thư ký dậy. Tổng đài có máy trả lời tự động cho câu "còn đó không?" (ping), nên không phải đánh thức ai.</p>
+</div>
+
+<div class="box key">
+  <span class="lbl">Hai câu cần nhớ</span>
+  <ol>
+    <li>Worker: nhiều bản, không nhớ gì, một bản phục vụ nhiều request cùng lúc.</li>
+    <li>Durable Object: mỗi tên đúng một bản, xử lý lần lượt, nhớ lâu bằng storage.</li>
+  </ol>
+</div>
+
+<!-- ============ 2 ============ -->
+<h2 id="worker"><span class="num">Bài 2</span>Worker</h2>
+<h3>Định nghĩa</h3>
+<p>Worker là một module JavaScript (hoặc TypeScript, Python, Wasm) mà Cloudflare chạy trên mạng edge mỗi khi có event, thường là một request HTTP. Bạn không thuê server và không quản lý tiến trình. Bạn chỉ export các handler; runtime gọi chúng khi có việc.</p>
+
+<h3>Isolate thay vì container</h3>
+<p>Code của bạn chạy trong một <b>V8 isolate</b>: một vùng cách ly nhẹ bên trong một tiến trình runtime đã chạy sẵn. Một tiến trình runtime chứa hàng trăm tới hàng nghìn isolate của nhiều khách hàng và chuyển qua lại giữa chúng. Theo docs, một isolate khởi động nhanh hơn khoảng một trăm lần so với một tiến trình Node trong container hay VM, và tốn ít bộ nhớ hơn cỡ một bậc.</p>
+<div class="tbl"><table>
+<thead><tr><th></th><th>AWS Lambda (mô hình mặc định)</th><th>Cloudflare Worker</th></tr></thead>
+<tbody>
+<tr><td>Đơn vị chạy</td><td>Một execution environment (micro-VM)</td><td>Một V8 isolate bên trong tiến trình có sẵn</td></tr>
+<tr><td>Request đồng thời trên một bản</td><td>1</td><td>Nhiều, đan xen nhau trên một luồng</td></tr>
+<tr><td>Khi có thêm request đồng thời</td><td>Tạo environment mới, chạy lại code khởi tạo</td><td>Isolate đang có nhận thêm; runtime chỉ mở thêm isolate khi cần</td></tr>
+<tr><td>Code khởi tạo chạy</td><td>Mỗi environment một lần</td><td>Mỗi isolate một lần</td></tr>
+</tbody></table></div>
+<p class="src">Cột Lambda là kiến thức chung để so sánh, không lấy từ docs Cloudflare.</p>
+
+<h3>Cái gì chạy một lần, cái gì chạy mỗi request</h3>
+<div class="file">src/index.js</div>
+<pre><code>import { parseRoute } from "./router.js";
+
+const PATHS = ["create", "join", "quick"];   // (1) chạy MỘT lần, lúc isolate nạp script
+let hits = 0;                                  // (1) biến này dùng chung cho mọi request của isolate
+
+export default {
+  async fetch(request, env, ctx) {             // (2) chạy MỖI request
+    hits++;                                    //     request khác trong cùng isolate cũng đang tăng nó
+    const route = parseRoute(new URL(request.url));
+    if (!PATHS.includes(route.action)) return new Response("Not found", { status: 404 });
+    return handle(route, request, env);        //     env chứa các binding: DO, KV, biến môi trường
+  },
+};</code></pre>
+<div class="tbl"><table>
+<thead><tr><th>Đoạn code</th><th>Chạy khi nào</th><th>Ghi chú</th></tr></thead>
+<tbody>
+<tr><td>Code cấp module (<code>import</code>, <code>const</code>, <code>let</code> ở ngoài)</td><td>Một lần mỗi isolate</td><td>Phải xong trong 1 giây. Isolate có thể sống qua rất nhiều request, cũng có thể bị gỡ bất cứ lúc nào.</td></tr>
+<tr><td><code>fetch(request, env, ctx)</code></td><td>Mỗi request</td><td>Đây là "hàm" bạn đang nghĩ tới. Không có constructor nào chạy trước nó.</td></tr>
+<tr><td><code>class X extends WorkerEntrypoint</code></td><td>Mỗi lần Worker được gọi, runtime tạo một object mới của class</td><td>Object chỉ sống trong một lần gọi, bên trong isolate có sẵn. Đây là chỗ duy nhất "constructor mỗi request" là đúng, và nó vẫn không phải một bản Worker mới.</td></tr>
+<tr><td><code>scheduled</code>, <code>queue</code>…</td><td>Mỗi event loại đó</td><td>Room engine không dùng.</td></tr>
+</tbody></table></div>
+
+<h3>Một isolate, nhiều request cùng lúc</h3>
+<p>Docs viết rõ: một instance Workers có thể xử lý nhiều request, kể cả request đồng thời, trên một vòng lặp sự kiện đơn luồng. Khi request A đang <code>await</code> (chờ mạng, chờ DO trả lời), isolate chạy request B. Không bao giờ có hai đoạn JavaScript chạy song song trong một isolate, nhưng các request đan xen nhau tại mỗi <code>await</code>. Vì thế biến cấp module là nơi dữ liệu của request này rò sang request khác:</p>
+<pre><code>let user;                                         // biến cấp module
+
+export default {
+  async fetch(req) {
+    user = req.headers.get("x-user");             // A đặt "An"
+    const data = await fetch("https://api.example/x");   // A chờ mạng → B chạy, đặt "Bình"
+    return new Response("Xin chào " + user);      // A trả về "Xin chào Bình"  ← sai
+  },
+};</code></pre>
+<figure>
+  <div class="fig-scroll">
+  <svg viewBox="0 0 720 170" role="img" aria-label="Dòng thời gian: request A chạy, rồi chờ mạng; trong lúc đó request B chạy và ghi đè biến user; A chạy tiếp và đọc giá trị của B.">
+    <text x="10" y="44" class="t-b">Request A</text>
+    <text x="10" y="94" class="t-b">Request B</text>
+    <text x="10" y="144" class="t-b tx-worker">Luồng CPU</text>
+    <rect x="120" y="26" width="100" height="28" rx="5" class="b-worker"/>
+    <text x="170" y="44" text-anchor="middle">user = "An"</text>
+    <line x1="220" y1="40" x2="430" y2="40" class="l-wait"/>
+    <text x="325" y="33" text-anchor="middle" class="t-m">chờ fetch()</text>
+    <rect x="430" y="26" width="100" height="28" rx="5" class="b-warn"/>
+    <text x="480" y="44" text-anchor="middle" class="tx-warn">đọc: "Bình"</text>
+    <rect x="240" y="76" width="100" height="28" rx="5" class="b-worker"/>
+    <text x="290" y="94" text-anchor="middle">user = "Bình"</text>
+    <line x1="340" y1="90" x2="560" y2="90" class="l-wait"/>
+    <text x="450" y="83" text-anchor="middle" class="t-m">chờ fetch()</text>
+    <rect x="560" y="76" width="100" height="28" rx="5" class="b-worker"/>
+    <text x="610" y="94" text-anchor="middle">đọc: "Bình"</text>
+    <rect x="120" y="128" width="100" height="24" rx="4" class="b-worker"/><text x="170" y="145" text-anchor="middle">A</text>
+    <rect x="240" y="128" width="100" height="24" rx="4" class="b-worker"/><text x="290" y="145" text-anchor="middle">B</text>
+    <rect x="430" y="128" width="100" height="24" rx="4" class="b-worker"/><text x="480" y="145" text-anchor="middle">A</text>
+    <rect x="560" y="128" width="100" height="24" rx="4" class="b-worker"/><text x="610" y="145" text-anchor="middle">B</text>
+    <line x1="120" y1="164" x2="700" y2="164" class="l"/>
+    <text x="700" y="160" text-anchor="end" class="t-m">thời gian →</text>
+  </svg>
+  </div>
+  <figcaption>Một isolate, một luồng: B chạy trong lúc A đang chờ mạng, và ghi đè <code>user</code> trước khi A đọc lại.</figcaption>
+</figure>
+<p>Quy tắc rút ra: dữ liệu của một request đi qua tham số hàm, không nằm trong biến cấp module. Hằng số chỉ đọc (danh sách route, bảng tra) thì để ngoài được. Worker của room engine không giữ gì: nó đọc URL, chọn phòng theo mã, chuyển tiếp.</p>
+
+<h3>Vòng đời một request và giới hạn</h3>
+<ul>
+  <li>Request kết thúc khi bạn trả <code>Response</code> (hoặc khi stream body xong). Promise không được <code>await</code> có thể bị hủy giữa chừng.</li>
+  <li>Việc cần làm sau khi đã trả response thì đưa vào <code>ctx.waitUntil(promise)</code>; có tối đa 30 giây sau khi response được gửi.</li>
+  <li>CPU mặc định 30 giây mỗi request trên gói Paid, nâng được tới 5 phút. Thời gian chờ mạng không tính là CPU.</li>
+  <li>128 MB bộ nhớ mỗi isolate, dùng chung cho mọi request đang chạy trong isolate đó.</li>
+</ul>
+<p class="src">Nguồn: <a href="https://developers.cloudflare.com/workers/reference/how-workers-works/">How Workers works</a> · <a href="https://developers.cloudflare.com/workers/best-practices/workers-best-practices/">Workers best practices</a> · <a href="https://developers.cloudflare.com/workers/platform/limits/">Limits</a> · <a href="https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/rpc/">WorkerEntrypoint</a></p>
+
+<!-- ============ 3 ============ -->
+<h2 id="durable-object"><span class="num">Bài 3</span>Durable Object</h2>
+<h3>Định nghĩa</h3>
+<p>Durable Object (DO) là một class JavaScript bạn viết và export từ Worker. Cloudflare tạo các object của class đó theo tên. Mỗi object có:</p>
+<ul>
+  <li>một tên (ID) duy nhất toàn cầu;</li>
+  <li>nhiều nhất một bản đang chạy tại một thời điểm, ở một địa điểm;</li>
+  <li>một storage SQLite riêng, nằm cùng máy;</li>
+  <li>các handler, được gọi khi có event.</li>
+</ul>
+<div class="tbl"><table>
+<thead><tr><th>Từ</th><th>Trong room engine</th><th>Nghĩa</th></tr></thead>
+<tbody>
+<tr><td>Class</td><td><code>Room</code></td><td>Code định nghĩa method và handler.</td></tr>
+<tr><td>Namespace, binding</td><td><code>env.ROOM</code></td><td>Tập hợp mọi object của class <code>Room</code>. Worker gọi tới chúng qua binding này.</td></tr>
+<tr><td>Tên, ID</td><td><code>"K7QM2P"</code></td><td><code>env.ROOM.getByName("K7QM2P")</code> luôn trỏ tới cùng một object. Cách viết cũ hơn mà spec đang dùng: <code>env.ROOM.get(env.ROOM.idFromName(code))</code>. <code>newUniqueId()</code> tạo ID ngẫu nhiên; khi đó bạn phải tự lưu ID ở đâu đó.</td></tr>
+<tr><td>Stub</td><td>kết quả của <code>getByName(code)</code></td><td>Tay cầm để gọi object. Tạo stub không tạo và không đánh thức object.</td></tr>
+<tr><td>Instance</td><td>phòng K7QM2P đang ở trong RAM</td><td>Bản đang chạy. Mỗi ID có nhiều nhất một bản.</td></tr>
+</tbody></table></div>
+
+<h3>Ví dụ nhỏ nhất: bộ đếm theo tên</h3>
+<div class="file">wrangler.jsonc</div>
+<pre><code>{
+  "name": "counter",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "durable_objects": {
+    "bindings": [{ "name": "COUNTER", "class_name": "Counter" }]   // env.COUNTER
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Counter"] }]  // dùng storage SQLite
+}</code></pre>
+<div class="file">src/index.js</div>
+<pre><code>import { DurableObject } from "cloudflare:workers";
+
+export class Counter extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);                  // chạy khi object đang lạnh, không phải mỗi request
+  }
+
+  increment() {                       // method RPC, Worker gọi qua stub
+    const n = (this.ctx.storage.kv.get("n") ?? 0) + 1;
+    this.ctx.storage.kv.put("n", n);  // ghi bền, đồng bộ, không cần await
+    return n;
+  }
+}
+
+export default {
+  async fetch(request, env) {
+    const name = new URL(request.url).searchParams.get("room") ?? "lobby";
+    const stub = env.COUNTER.getByName(name);    // cùng tên → cùng một object
+    const n = await stub.increment();            // code này chạy BÊN TRONG object
+    return new Response("Lượt thứ " + n + " của " + name);
+  },
+};</code></pre>
+<p>Cùng tên <code>lobby</code> thì mọi request, gửi từ Hà Nội hay Liège, đều tới đúng một object. Con số tăng 1, 2, 3… không trùng, không mất. So với biến <code>hits</code> ở bài 2: mỗi isolate có một <code>hits</code> riêng, nên con số đó vừa sai vừa biến mất khi isolate bị gỡ.</p>
+
+<h3>Mỗi tên đúng một bản, ở một nơi</h3>
+<ul>
+  <li>Object được tạo gần nơi phát sinh request đầu tiên tới nó. Có thể gợi ý vùng bằng <code>locationHint</code>, nhưng đó chỉ là gợi ý.</li>
+  <li>Sau đó, mọi request cho tên này từ bất cứ đâu đều được chuyển tới đúng địa điểm đó. Người chơi ở xa phòng sẽ chịu độ trễ mạng cao hơn.</li>
+  <li>Một object xử lý được khoảng 500–1.000 request đơn giản mỗi giây. Vì vậy thiết kế chuẩn là một object cho mỗi đơn vị cần phối hợp (mỗi phòng), không dùng một object cho cả hệ thống.</li>
+</ul>
+
+<h3>Không có vòng lặp chính, chỉ có handler</h3>
+<p>Đây là câu trả lời cho câu hỏi "toàn bộ code chỉ là một hàm?". Một DO là một class có nhiều handler. Runtime gọi đúng handler khi event tới; giữa hai event, không có dòng code nào chạy.</p>
+<div class="tbl"><table>
+<thead><tr><th>Handler</th><th>Được gọi khi</th></tr></thead>
+<tbody>
+<tr><td><code>constructor(ctx, env)</code></td><td>Object đang lạnh và có event đầu tiên tới: lần đầu tiên, sau khi ngủ, sau khi bị gỡ khỏi RAM. Không phải mỗi request.</td></tr>
+<tr><td><code>fetch(request)</code></td><td>Worker gọi <code>stub.fetch(request)</code>. Room engine dùng cho lần nâng cấp WebSocket.</td></tr>
+<tr><td>Method RPC, ví dụ <code>create(name)</code></td><td>Worker gọi <code>await stub.create(name)</code>.</td></tr>
+<tr><td><code>webSocketMessage(ws, message)</code></td><td>Một socket đã được accept nhận một tin. Không gọi cho khung điều khiển ping/pong của giao thức.</td></tr>
+<tr><td><code>webSocketClose(ws, code, reason, wasClean)</code></td><td>Một socket đóng.</td></tr>
+<tr><td><code>webSocketError(ws, error)</code></td><td>Socket gặp lỗi không phải do ngắt kết nối.</td></tr>
+<tr><td><code>alarm(info)</code></td><td>Tới giờ alarm đã hẹn (bài 8).</td></tr>
+</tbody></table></div>
+
+<h3>RAM và storage</h3>
+<div class="tbl"><table>
+<thead><tr><th></th><th>RAM: field trong class, ví dụ <code>this.room</code></th><th>Storage: <code>this.ctx.storage</code></th></tr></thead>
+<tbody>
+<tr><td>Tốc độ</td><td>Nhanh nhất</td><td>Rất nhanh, SQLite nằm cùng máy</td></tr>
+<tr><td>Mất khi</td><td>Object ngủ, bị gỡ, ném exception không bắt, deploy</td><td>Bạn xóa</td></tr>
+<tr><td>Dùng cho</td><td>Cache, bộ đếm rate-limit</td><td>Mọi thứ phải sống quá vài giây</td></tr>
+<tr><td>Tính tiền</td><td>Không</td><td>Dòng đọc, dòng ghi, dung lượng</td></tr>
+</tbody></table></div>
+<p>Với object dùng SQLite, <code>ctx.storage.kv.get/put/delete/list</code> là API <b>đồng bộ</b>: trả giá trị ngay, không có Promise. Nhiều lệnh ghi liên tiếp không có <code>await</code> ở giữa được gộp lại và ghi nguyên tử.</p>
+
+<h3>Từng event một: input gate và output gate</h3>
+<p>Mỗi object chạy trên một luồng. Ngoài ra runtime có hai "cổng" để code dễ viết đúng:</p>
+<div class="dl">
+  <dt>Input gate</dt><dd>Trong lúc một thao tác storage đang chạy, không event mới nào được giao cho object. Ví dụ kinh điển: hai request cùng <code>get("counter")</code> rồi <code>put(val + 1)</code>. Nhờ input gate, request thứ hai chỉ chạy tiếp sau khi request đầu xong, nên mỗi request nhận một số khác nhau.</dd>
+  <dt>Ngoại lệ</dt><dd>Chờ <code>fetch()</code> tới một dịch vụ ngoài thì không được che: event khác có thể chen vào trong lúc chờ.</dd>
+  <dt>Output gate</dt><dd>Trong lúc một lệnh ghi chưa bền, các tin gửi ra mạng (response, <code>fetch</code> mới) bị giữ lại; ghi lỗi thì tin bị hủy. Client không bao giờ thấy kết quả của một lần ghi chưa lưu. Docs không nói riêng về <code>ws.send</code> <span class="tag">chưa kiểm chứng</span></dd>
+</div>
+<p>Handler của room engine dùng API storage đồng bộ và chạy một mạch không có <code>await</code>, nên không event nào chen được vào giữa.</p>
+<p class="src">Nguồn: <a href="https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/">Rules of Durable Objects</a> · <a href="https://developers.cloudflare.com/durable-objects/api/base/">Durable Object base class</a> · <a href="https://developers.cloudflare.com/durable-objects/api/namespace/">Namespace</a> · <a href="https://developers.cloudflare.com/durable-objects/reference/in-memory-state/">In-memory state</a> · <a href="https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/">SQLite storage API</a> · <a href="https://blog.cloudflare.com/durable-objects-easy-fast-correct-choose-three/">Blog: input/output gates</a></p>
+
+<!-- ============ 4 ============ -->
+<h2 id="vong-doi"><span class="num">Bài 4</span>Vòng đời của một Durable Object</h2>
+<p>Một object không "chạy liên tục". Nó chuyển qua lại giữa năm trạng thái, và chỉ hai trong số đó bị tính tiền thời gian.</p>
+<figure>
+  <div class="fig-scroll">
+  <svg viewBox="0 0 760 290" role="img" aria-label="Sơ đồ trạng thái: chưa hoạt động, có event thì constructor chạy và thành đang chạy; xong event thì rảnh; rảnh mà ngủ được thì sau 10 giây thành đã ngủ; event mới đánh thức và chạy lại constructor; rảnh mà không ngủ được thì sau 70 đến 140 giây bị gỡ.">
+    <defs>
+      <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-ink"/></marker>
+    </defs>
+    <rect x="20" y="110" width="130" height="48" rx="8" class="b-plain"/>
+    <text x="85" y="130" text-anchor="middle" class="t-b">Chưa hoạt động</text>
+    <text x="85" y="147" text-anchor="middle" class="t-m">không trong RAM</text>
+
+    <rect x="230" y="110" width="130" height="48" rx="8" class="b-warn"/>
+    <text x="295" y="130" text-anchor="middle" class="t-b">Đang chạy</text>
+    <text x="295" y="147" text-anchor="middle" class="t-m tx-warn">tính duration</text>
+
+    <rect x="440" y="40" width="140" height="48" rx="8" class="b-do"/>
+    <text x="510" y="60" text-anchor="middle" class="t-b">Rảnh · ngủ được</text>
+    <text x="510" y="77" text-anchor="middle" class="t-m">không tính</text>
+
+    <rect x="630" y="40" width="115" height="48" rx="8" class="b-plain"/>
+    <text x="687" y="60" text-anchor="middle" class="t-b">Đã ngủ</text>
+    <text x="687" y="77" text-anchor="middle" class="t-m">socket vẫn mở</text>
+
+    <rect x="440" y="180" width="160" height="48" rx="8" class="b-warn"/>
+    <text x="520" y="200" text-anchor="middle" class="t-b">Rảnh · không ngủ được</text>
+    <text x="520" y="217" text-anchor="middle" class="t-m tx-warn">tính duration</text>
+
+    <line x1="150" y1="134" x2="228" y2="134" class="l" marker-end="url(#a2)"/>
+    <text x="189" y="126" text-anchor="middle" class="t-m">event đầu</text>
+    <text x="189" y="150" text-anchor="middle" class="t-mono">constructor</text>
+
+    <line x1="360" y1="124" x2="438" y2="76" class="l" marker-start="url(#a2)" marker-end="url(#a2)"/>
+    <text x="410" y="106" class="t-m">xong event</text>
+    <text x="410" y="120" class="t-m">⇄ event mới</text>
+
+    <line x1="580" y1="64" x2="628" y2="64" class="l" marker-end="url(#a2)"/>
+    <text x="604" y="56" text-anchor="middle" class="t-m">≈10 s</text>
+
+    <path d="M687,40 C687,8 295,8 295,108" class="l" marker-end="url(#a2)"/>
+    <text x="491" y="16" text-anchor="middle" class="t-m">event mới · constructor chạy lại</text>
+
+    <line x1="360" y1="144" x2="438" y2="196" class="l" marker-end="url(#a2)"/>
+    <text x="378" y="178" text-anchor="end" class="t-m">còn timer, I/O</text>
+    <text x="378" y="192" text-anchor="end" class="t-m">hoặc WS thường</text>
+
+    <path d="M440,214 C300,272 85,262 85,160" class="l" marker-end="url(#a2)"/>
+    <text x="215" y="280" text-anchor="middle" class="t-m">70–140 s im lặng · bị gỡ khỏi RAM</text>
+  </svg>
+  </div>
+  <figcaption>Chỉ "đang chạy" và "rảnh nhưng không ngủ được" bị tính duration. Một object rảnh mà đủ điều kiện ngủ thì đã không bị tính, kể cả trước khi nó thật sự ngủ.</figcaption>
+</figure>
+<div class="tbl"><table>
+<thead><tr><th>Trạng thái</th><th>Trong RAM</th><th>Duration</th><th>Ghi chú</th></tr></thead>
+<tbody>
+<tr><td>Chưa hoạt động</td><td>không</td><td>không</td><td>Trạng thái ban đầu của mọi object. Event tới thì constructor chạy trước, rồi tới handler.</td></tr>
+<tr><td>Đang chạy</td><td>có</td><td>có</td><td>Đang chạy một handler.</td></tr>
+<tr><td>Rảnh, không ngủ được</td><td>có</td><td>có</td><td>Còn <code>setTimeout</code>/<code>setInterval</code>, I/O hay <code>waitUntil</code> dở, kết nối ra ngoài, hoặc WebSocket kiểu thường. Bị gỡ sau 70–140 giây.</td></tr>
+<tr><td>Rảnh, ngủ được</td><td>có</td><td>không</td><td>Ngủ sau khoảng 10 giây im lặng.</td></tr>
+<tr><td>Đã ngủ</td><td>không</td><td>không</td><td>Socket dùng Hibernation API vẫn mở ở edge. Event kế tiếp dựng lại object: constructor chạy lại rồi mới tới handler.</td></tr>
+</tbody></table></div>
+<ul>
+  <li><b>Mất khi ngủ:</b> mọi field trong class. <b>Còn lại:</b> storage, alarm, socket, và attachment của từng socket.</li>
+  <li><b>Không có hook trước khi tắt.</b> Docs khuyên ghi tiến độ dần dần. Đó là lý do room engine ghi storage ngay trong mỗi thay đổi.</li>
+  <li>Một alarm đã hẹn giờ có cản object ngủ hay không: trang vòng đời không liệt kê nó trong điều kiện cản ngủ; trang WebSocket ghi "các event như alarm" cản ngủ, tức lúc <code>alarm()</code> đang chạy. <span class="tag">chưa kiểm chứng tuyệt đối</span></li>
+</ul>
+<div class="sim" data-scenario="sleep"></div>
+<p class="src">Nguồn: <a href="https://developers.cloudflare.com/durable-objects/concepts/durable-object-lifecycle/">Lifecycle of a Durable Object</a> · <a href="https://developers.cloudflare.com/durable-objects/platform/pricing/">DO pricing</a></p>
+
+<!-- ============ 5 ============ -->
+<h2 id="http"><span class="num">Bài 5</span>Đường đi của một request HTTP</h2>
+<p>Ví dụ: An bấm "Tạo phòng" trong game cangua. Bấm "Tiếp" để xem từng bước: ô nào sáng là chỗ đang chạy code, dòng mono dưới mỗi ô là trạng thái của nó.</p>
+<div class="sim" data-scenario="http"></div>
+<h3>Ba điều rút ra</h3>
+<ol>
+  <li>Worker không giữ gì. Thông tin phòng nằm trong storage của Room DO; token nằm ở trình duyệt.</li>
+  <li>Constructor chạy ở bước 5 chỉ vì object còn lạnh. Một request tới phòng này vài giây sau sẽ gọi thẳng method, không qua constructor.</li>
+  <li>Request HTTP vào Worker tính là một request Worker. Mỗi lời gọi method qua stub tính là một request DO.</li>
+</ol>
+<div class="file">Worker · xử lý POST /cangua/api/create</div>
+<pre><code>async function create(request, env) {
+  const { name } = await request.json();
+  for (let i = 0; i &lt; 3; i++) {
+    const code = newCode();                                  // 6 ký tự ngẫu nhiên
+    const r = await env.ROOM.getByName(code).create(name);   // RPC vào đúng phòng đó
+    if (!r.err) return Response.json({ code, token: r.token, seat: r.seat });
+  }                                                          // trùng mã thì thử mã khác
+  return Response.json({ error: "BUSY" }, { status: 503 });
+}</code></pre>
+
+<!-- ============ 6 ============ -->
+<h2 id="websocket"><span class="num">Bài 6</span>Đường đi của WebSocket</h2>
+<p>Có token rồi, trình duyệt mở WebSocket. Đây là phần dễ hiểu nhầm nhất: Worker chỉ tham gia đúng một lần, lúc nâng cấp kết nối.</p>
+<div class="sim" data-scenario="ws"></div>
+
+<h3>Code đầy đủ của đường WebSocket</h3>
+<div class="file">Worker</div>
+<pre><code>if (url.pathname.startsWith("/cangua/ws/")) {
+  if (request.headers.get("Upgrade") !== "websocket") return new Response(null, { status: 426 });
+  const code = url.pathname.split("/").pop();
+  return env.ROOM.getByName(code).fetch(request);   // trả nguyên response 101 của DO
+}</code></pre>
+<div class="file">Room DO</div>
+<pre><code>export class Room extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
+  }
+
+  fetch(request) {                                  // chỉ chạy cho lần nâng cấp
+    const [client, server] = Object.values(new WebSocketPair());
+    this.ctx.acceptWebSocket(server);               // Hibernation API, không dùng server.accept()
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  webSocketMessage(ws, raw) {                       // mỗi tin của mọi người chơi trong phòng
+    const msg = JSON.parse(raw);
+    const room = (this.room ??= this.ctx.storage.kv.get("r"));   // RAM trống sau khi ngủ thì đọc lại
+    // … kiểm tra, áp luật, this.ctx.storage.kv.put("r", room) …
+    for (const s of this.ctx.getWebSockets()) s.send(JSON.stringify(viewFor(room, s)));
+  }
+
+  webSocketClose(ws, code, reason, wasClean) {
+    // compat date từ 2026-04-07: runtime tự trả lời khung Close; trước đó phải gọi ws.close(code, reason)
+  }
+}</code></pre>
+
+<h3>Vì sao WebSocket phải nằm ở DO</h3>
+<ul>
+  <li>Worker thường cũng nâng cấp được WebSocket, nhưng không có trạng thái bền và không ngủ được. Isolate bị gỡ là kết nối mất.</li>
+  <li>Bốn người cùng phòng có thể rơi vào bốn isolate ở bốn nơi. Không isolate nào thấy socket của người khác để gửi cho cả phòng. Room DO là điểm hẹn duy nhất mà cả bốn socket cùng gắn vào.</li>
+</ul>
+
+<h3>Hibernation API và API thường</h3>
+<div class="tbl"><table>
+<thead><tr><th></th><th>Hibernation API</th><th>API thường</th></tr></thead>
+<tbody>
+<tr><td>Nhận socket</td><td><code>this.ctx.acceptWebSocket(server, tags?)</code></td><td><code>server.accept()</code></td></tr>
+<tr><td>Nhận tin</td><td>Method <code>webSocketMessage</code>, <code>webSocketClose</code>, <code>webSocketError</code></td><td><code>server.addEventListener("message", …)</code></td></tr>
+<tr><td>Object ngủ được khi socket còn mở</td><td>có</td><td>không, bị tính duration suốt thời gian mở</td></tr>
+<tr><td>Khi deploy</td><td>Socket còn nguyên nếu object nhận code mới lúc đang ngủ</td><td>Socket bị ngắt</td></tr>
+<tr><td>Số socket mỗi object</td><td>Tối đa 32.768</td><td>Docs trang này không ghi</td></tr>
+</tbody></table></div>
+
+<h3>Công cụ đi kèm</h3>
+<div class="dl mono">
+  <dt>serializeAttachment(v)</dt><dd>Gắn một giá trị nhỏ (tối đa 16.384 byte) vào từng socket. Còn qua giấc ngủ, mất khi socket đóng. Room engine dùng nó để nhớ socket này là của người chơi nào; đọc lại bằng <code>ws.deserializeAttachment()</code>.</dd>
+  <dt>tags</dt><dd><code>acceptWebSocket(ws, ["p:an"])</code> rồi <code>getWebSockets("p:an")</code> để lọc. Tối đa 10 tag mỗi socket, mỗi tag tối đa 256 ký tự. Tag được truyền vào lúc accept.</dd>
+  <dt>getWebSockets(tag?)</dt><dd>Danh sách socket đang gắn với chính object này, còn nguyên sau khi ngủ dậy. Đây là cách gửi cho cả phòng.</dd>
+  <dt>setWebSocketAutoResponse</dt><dd>Edge tự trả lời một tin cố định (ví dụ <code>"ping"</code> → <code>"pong"</code>) mà không đánh thức object và không tính duration.</dd>
+  <dt>getWebSocketAutoResponseTimestamp(ws)</dt><dd>Thời điểm gần nhất socket đó nhận auto-response, hoặc <code>null</code>. Dùng để đoán socket nào đã chết âm thầm.</dd>
+</div>
+
+<h3>Tính tiền và deploy</h3>
+<ul>
+  <li>Lần nâng cấp: 1 request Worker và 1 request DO.</li>
+  <li>Tin gửi lên: không tính là request Worker; tính request DO theo tỉ lệ 20 tin bằng 1 request.</li>
+  <li>Tin gửi xuống, ping cấp giao thức và auto-response: miễn phí.</li>
+  <li>Deploy lúc phòng đang ngủ: lần thức kế tiếp chạy code mới, socket còn nguyên.</li>
+  <li>Deploy lúc phòng đang thức: docs mô tả cập nhật kiểu <code>deferred</code> (chờ object ngủ, có <code>max_delay</code>) và <code>immediate</code>. Khi bị ép cập nhật, socket bị ngắt; client phải tự kết nối lại và gửi lại <code>hello</code>. Storage còn nguyên. Chiến lược mặc định <span class="tag">chưa kiểm chứng</span></li>
+</ul>
+<p class="src">Nguồn: <a href="https://developers.cloudflare.com/durable-objects/best-practices/websockets/">Use WebSockets</a> · <a href="https://developers.cloudflare.com/durable-objects/examples/websocket-hibernation-server/">Hibernation server example</a> · <a href="https://developers.cloudflare.com/durable-objects/api/state/">Durable Object State (ctx)</a> · <a href="https://developers.cloudflare.com/workers/platform/pricing/">Workers pricing</a></p>
+
+<!-- ============ 7 ============ -->
+<h2 id="dong-thoi"><span class="num">Bài 7</span>Cái gì song song, cái gì xếp hàng</h2>
+<p>Song song xảy ra giữa các phòng. Trong một phòng, mọi thứ xảy ra lần lượt.</p>
+<div class="sim" data-scenario="conc"></div>
+<div class="tbl"><table>
+<thead><tr><th>Tình huống</th><th>Chạy song song</th><th>Xếp hàng</th></tr></thead>
+<tbody>
+<tr><td>4 người cùng phòng gửi tin cùng lúc</td><td>Không</td><td>Cả 4 tin vào cùng một Room DO, xử lý lần lượt</td></tr>
+<tr><td>2 phòng khác nhau</td><td>2 object chạy song song, có thể ở 2 máy</td><td>Trong từng phòng</td></tr>
+<tr><td>1.000 phòng</td><td>1.000 object rải trên nhiều máy; phòng rảnh thì ngủ và không tốn duration</td><td>Trong từng phòng</td></tr>
+<tr><td>1.000 request <code>create</code> cùng lúc</td><td>Nhiều isolate Worker, mỗi isolate đan xen nhiều request; mỗi request tạo một phòng riêng</td><td>Không</td></tr>
+<tr><td>1.000 request <code>quick</code> cùng lúc</td><td>Phần Worker chạy song song</td><td>Tất cả hỏi chung một Match DO của game, nên xếp hàng ở đó (khoảng 500–1.000 request/giây mỗi object)</td></tr>
+</tbody></table></div>
+<p>Nhiều object (nhiều phòng) có thể chạy chung một isolate <span class="tag">chưa kiểm chứng từ docs</span>. Spec coi là có thể (D-18), nên biến cấp module trong file của DO cũng phải bất biến, giống hệt quy tắc của Worker ở bài 2.</p>
+
+<!-- ============ 8 ============ -->
+<h2 id="alarm"><span class="num">Bài 8</span>Alarm thay cho setTimeout</h2>
+<p>Đồng hồ lượt cần "đánh thức phòng vào giây thứ 60 dù không ai gửi gì". <code>setTimeout</code> làm được việc đó trong lúc object còn trong RAM, nhưng với giá rất đắt và không an toàn.</p>
+<div class="tbl"><table>
+<thead><tr><th></th><th><code>setTimeout</code> trong DO</th><th><code>ctx.storage.setAlarm(t)</code></th></tr></thead>
+<tbody>
+<tr><td>Lưu ở đâu</td><td>RAM</td><td>Storage</td></tr>
+<tr><td>Còn sau khi ngủ, bị gỡ, deploy</td><td>Không</td><td>Có</td></tr>
+<tr><td>Ảnh hưởng tới giấc ngủ</td><td>Object không ngủ được, bị tính duration suốt thời gian chờ</td><td>Lúc <code>alarm()</code> chạy thì object thức (xem ghi chú ở bài 4)</td></tr>
+<tr><td>Số lượng</td><td>Tùy ý</td><td>Một alarm mỗi object; <code>setAlarm</code> mới ghi đè cái cũ</td></tr>
+<tr><td>Đảm bảo</td><td>Không</td><td>Chạy ít nhất một lần; handler ném lỗi thì thử lại tối đa 6 lần, backoff từ 2 giây</td></tr>
+<tr><td>Chi phí</td><td>Duration</td><td>Mỗi <code>setAlarm</code> là 1 dòng ghi; mỗi lần kêu là 1 request DO</td></tr>
+</tbody></table></div>
+<ul>
+  <li>Alarm có thể kêu nhiều hơn một lần, nên <code>alarm()</code> phải idempotent: chạy lại cũng không làm hỏng gì.</li>
+  <li>Nếu object đang lạnh, constructor chạy trước <code>alarm()</code>.</li>
+  <li>Room engine dùng một alarm duy nhất, đặt ở hạn sớm nhất. Client tự đếm ngược từ <code>deadline</code> trong state, nên server không phải gửi gì mỗi giây.</li>
+</ul>
+<pre><code>async afterWrite() {                                 // gọi (có await) sau mỗi lần ghi state
+  const next = earliestDeadline(this.room);
+  const cur = await this.ctx.storage.getAlarm();     // thao tác storage: input gate vẫn đóng
+  if (cur === null || next &lt; cur) this.ctx.storage.setAlarm(next);     // 1 dòng ghi, chỉ khi cần
+}
+
+async alarm() {                                      // có thể kêu trùng: phải idempotent
+  const room = (this.room ??= this.ctx.storage.kv.get("r"));
+  if (!room) return;                                 // phòng đã bị xóa
+  // xử lý các hạn đã qua → ghi một lần → gửi state cho cả phòng → hẹn alarm kế tiếp
+}</code></pre>
+<p class="src">Nguồn: <a href="https://developers.cloudflare.com/durable-objects/api/alarms/">Alarms</a> · <a href="https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/">Rules of Durable Objects</a></p>
+
+<!-- ============ 9 ============ -->
+<h2 id="chi-phi"><span class="num">Bài 9</span>Cái gì bị tính tiền</h2>
+<p>Hiểu mô hình chạy thì đoán được hóa đơn. Bảng dưới là gói Workers Paid ($5 mỗi tháng cho cả account).</p>
+<div class="tbl"><table>
+<thead><tr><th>Hạng mục</th><th>Sinh ra bởi</th><th>Có sẵn mỗi tháng</th><th>Vượt mức</th></tr></thead>
+<tbody>
+<tr><td>Request Worker</td><td>Mỗi request HTTP vào Worker, kể cả lần nâng cấp WebSocket. Static assets miễn phí.</td><td>10 triệu</td><td>$0,30 / triệu</td></tr>
+<tr><td>Request DO</td><td>Mỗi lời gọi RPC, mỗi <code>stub.fetch</code>, mỗi lần alarm kêu, tin WebSocket gửi lên (20 tin = 1)</td><td>1 triệu</td><td>$0,15 / triệu</td></tr>
+<tr><td>Duration DO</td><td>Thời gian object đang chạy hoặc rảnh mà không ngủ được, tính theo 128 MB</td><td>400.000 GB-s</td><td>$12,50 / triệu GB-s</td></tr>
+<tr><td>Dòng ghi SQLite</td><td>Mỗi <code>put</code>, <code>delete</code>, <code>setAlarm</code></td><td>50 triệu</td><td>$1,00 / triệu</td></tr>
+<tr><td>Dòng đọc SQLite</td><td>Mỗi <code>get</code>, <code>list</code></td><td>25 tỷ</td><td>$0,001 / triệu</td></tr>
+</tbody></table></div>
+<div class="box">
+  <span class="lbl">Ước lượng thô một ván</span>
+  <p>4 người, 60 nước đi, 10 lần hết giờ:</p>
+  <ul>
+    <li><b>Request Worker:</b> 4 lần tạo hoặc vào phòng + 4 lần nâng cấp = 8.</li>
+    <li><b>Request DO:</b> 4 RPC + 4 nâng cấp + 64 tin gửi lên / 20 + 10 lần alarm ≈ 21.</li>
+    <li><b>Dòng ghi:</b> khoảng 80–90 (mỗi nước, mỗi lần tự đi, vài lần <code>setAlarm</code>, lúc vào phòng).</li>
+    <li><b>Tin gửi xuống:</b> vài trăm, miễn phí.</li>
+    <li><b>Duration:</b> mỗi event chạy vài mili giây, phần còn lại phòng ngủ: gần như bằng 0.</li>
+  </ul>
+  <p>Mô hình đầy đủ có tham số nằm ở mục 12 của spec.</p>
+</div>
+<p class="src">Nguồn: <a href="https://developers.cloudflare.com/durable-objects/platform/pricing/">DO pricing</a> · <a href="https://developers.cloudflare.com/workers/platform/pricing/">Workers pricing</a></p>
+
+<!-- ============ 10 ============ -->
+<h2 id="hieu-lam"><span class="num">Bài 10</span>Hiểu lầm thường gặp và thuật ngữ</h2>
+<div class="tbl"><table>
+<thead><tr><th>Hiểu lầm</th><th>Thực tế</th></tr></thead>
+<tbody>
+<tr><td>Mỗi request đồng thời tạo một bản Worker mới và gọi constructor.</td><td>Một isolate phục vụ nhiều request đồng thời; runtime chỉ mở thêm isolate khi cần. Code cấp module chạy một lần mỗi isolate. Riêng <code>WorkerEntrypoint</code>: mỗi lần gọi tạo một object mới trong isolate có sẵn, và object đó vẫn không nhớ gì.</td></tr>
+<tr><td>Toàn bộ code chỉ là một hàm.</td><td>Worker: mỗi request gọi một handler (<code>fetch</code>). DO: một class với nhiều handler, mỗi event gọi một handler. Không có vòng lặp chính; giữa hai event không có code nào chạy.</td></tr>
+<tr><td>Nhiều người cùng phòng thì có nhiều bản của phòng.</td><td>Mỗi tên đúng một bản trên toàn thế giới. Tin xếp hàng và được xử lý lần lượt.</td></tr>
+<tr><td>Constructor của DO chạy mỗi request.</td><td>Chỉ khi object đang lạnh: lần đầu, sau khi ngủ, sau khi bị gỡ.</td></tr>
+<tr><td><code>this.room</code> là dữ liệu bền.</td><td>Chỉ là cache trong RAM, mất khi object ngủ.</td></tr>
+<tr><td>Phòng ngủ thì socket đóng.</td><td>Socket Hibernation nằm ở edge, vẫn mở. Tin tới thì phòng thức dậy.</td></tr>
+<tr><td>Ping giữ phòng thức.</td><td>Auto-response không đánh thức object và không tính tiền.</td></tr>
+<tr><td>Tin WebSocket chạy qua code Worker.</td><td>Chỉ lần nâng cấp chạy qua <code>fetch</code> của Worker. Tin sau đó đi thẳng vào <code>webSocketMessage</code> của DO.</td></tr>
+<tr><td>Dùng <code>setTimeout</code> làm đồng hồ lượt.</td><td>Object không ngủ được và timer mất khi bị gỡ. Dùng alarm.</td></tr>
+<tr><td>Tạo stub là đánh thức object.</td><td>Stub chỉ là tay cầm. Object chỉ chạy khi bạn gọi method hoặc <code>fetch</code> qua stub.</td></tr>
+</tbody></table></div>
+
+<h3>Thuật ngữ</h3>
+<div class="dl">
+  <dt>Edge</dt><dd>Các máy chủ Cloudflare gần người dùng, nơi nhận kết nối và chạy Worker.</dd>
+  <dt>Isolate</dt><dd>Vùng cách ly V8 nơi code Worker chạy. Một tiến trình runtime chứa rất nhiều isolate.</dd>
+  <dt>Binding</dt><dd>Tên trong <code>env</code> trỏ tới một tài nguyên: <code>env.ROOM</code> là namespace của class <code>Room</code>.</dd>
+  <dt>Namespace</dt><dd>Tập hợp mọi Durable Object của cùng một class.</dd>
+  <dt>Stub</dt><dd>Tay cầm để gọi một Durable Object cụ thể.</dd>
+  <dt>RPC</dt><dd>Gọi method của DO qua stub như gọi hàm: <code>await stub.create(name)</code>.</dd>
+  <dt>Hibernation</dt><dd>Object bị gỡ khỏi RAM trong khi socket vẫn mở ở edge.</dd>
+  <dt>Attachment</dt><dd>Giá trị nhỏ gắn vào từng socket, còn qua giấc ngủ.</dd>
+  <dt>Input gate</dt><dd>Không giao event mới trong lúc một thao tác storage đang chạy.</dd>
+  <dt>Output gate</dt><dd>Giữ tin gửi ra cho tới khi lệnh ghi đã bền.</dd>
+  <dt>Alarm</dt><dd>Hẹn giờ bền, mỗi object một cái, đánh thức object lúc tới hạn.</dd>
+  <dt>Compatibility date</dt><dd>Ngày ghim hành vi runtime trong <code>wrangler.jsonc</code>; vài hành vi (tự trả lời Close, <code>deleteAll</code> xóa alarm) đổi theo ngày này.</dd>
+</div>
+
+<h3>Đọc thêm</h3>
+<ul>
+  <li><a href="https://developers.cloudflare.com/workers/reference/how-workers-works/">How Workers works</a> và <a href="https://developers.cloudflare.com/workers/best-practices/workers-best-practices/">Workers best practices</a></li>
+  <li><a href="https://developers.cloudflare.com/durable-objects/concepts/durable-object-lifecycle/">Lifecycle of a Durable Object</a> và <a href="https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/">Rules of Durable Objects</a></li>
+  <li><a href="https://developers.cloudflare.com/durable-objects/best-practices/websockets/">Use WebSockets</a> và <a href="https://developers.cloudflare.com/durable-objects/examples/websocket-hibernation-server/">ví dụ server dùng Hibernation</a></li>
+  <li><a href="https://developers.cloudflare.com/durable-objects/api/state/">Durable Object State (ctx)</a>, <a href="https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/">SQLite storage API</a>, <a href="https://developers.cloudflare.com/durable-objects/api/alarms/">Alarms</a></li>
+  <li><a href="https://blog.cloudflare.com/durable-objects-easy-fast-correct-choose-three/">Durable Objects: Easy, Fast, Correct — Choose three</a> (input gate và output gate)</li>
+</ul>
+</main>
+<script>
+(function () {
+  const NODES = [["client", "Trình duyệt"], ["edge", "Edge"], ["worker", "Worker"], ["do", "Room DO"], ["store", "Storage"]];
+  const NAME = Object.fromEntries(NODES);
+
+  const SC = {
+    http: {
+      title: "Tạo phòng bằng HTTP",
+      init: { client: "chưa vào phòng", edge: "chờ request", worker: "isolate ấm, đang phục vụ request khác", do: "chưa tồn tại", store: "trống" },
+      steps: [
+        { t: "Trình duyệt gửi POST", a: ["client", "edge"], f: ["client", "edge", "POST /cangua/api/create {\"name\":\"An\"}"],
+          s: { client: "chờ phản hồi", edge: "so route /cangua/*" },
+          b: `Request tới máy chủ Cloudflare gần An nhất. Edge so URL với route <code>games.example/cangua/*</code> để biết đây là việc của Worker <code>cangua</code>.` },
+        { t: "Edge giao request cho một isolate", a: ["edge", "worker"], f: ["edge", "worker", "gọi fetch(request, env, ctx)"],
+          s: { edge: "đã chuyển cho Worker", worker: "chạy fetch() cho An, vẫn phục vụ request khác" },
+          b: `Nếu máy này đã có isolate của Worker <code>cangua</code> đang ấm, request được giao cho nó, kể cả khi isolate đang bận với request khác. Nếu chưa có, runtime nạp script và chạy code cấp module một lần, rồi mới gọi <code>fetch</code>. Không có constructor nào ở bước này.`,
+          c: `export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    if (url.pathname === "/cangua/api/create") return create(request, env);
+    // …
+  },
+};` },
+        { t: "Worker chọn phòng theo mã", a: ["worker"], f: null,
+          s: { worker: "sinh mã K7QM2P, lấy stub" },
+          b: `Worker sinh mã phòng rồi lấy stub bằng <code>env.ROOM.getByName(code)</code>. Stub chỉ là tay cầm: tạo stub không tạo và không đánh thức object nào.`,
+          c: `const code = newCode();                      // "K7QM2P"
+const stub = env.ROOM.getByName(code);       // chưa có gì chạy ở phía DO
+const r = await stub.create(name);           // RPC: lúc này object mới được gọi` },
+        { t: "Gọi RPC sang Room DO", a: ["worker", "do"], f: ["worker", "do", "RPC create(\"An\")"],
+          s: { worker: "await stub.create(): đang chờ", do: "được tạo gần nơi có request đầu tiên" },
+          b: `Cloudflare tìm object có ID ứng với <code>K7QM2P</code>. Object chưa từng tồn tại nên được tạo gần nơi phát sinh request này, và ở đó suốt đời. Request sau cho mã này, từ bất cứ đâu, đều được chuyển tới đúng chỗ đó. Trong lúc Worker <code>await</code>, isolate rảnh tay chạy request khác.` },
+        { t: "Constructor chạy (khởi động lạnh)", a: ["do"], f: null,
+          s: { do: "constructor() · RAM: trống" },
+          b: `Object đang lạnh nên runtime gọi <code>constructor(ctx, env)</code> trước, rồi mới gọi method. Constructor nên nhẹ: không đọc storage, không đặt alarm.`,
+          c: `constructor(ctx, env) {
+  super(ctx, env);
+  ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
+}` },
+        { t: "Method chạy và ghi storage", a: ["do", "store"], f: ["do", "store", "kv.get(\"r\") → undefined · kv.put(\"r\", room)"],
+          s: { do: "create() · RAM: this.room", store: "r = { v: 1, seats: [An] }" },
+          b: `<code>ctx.storage.kv</code> là API đồng bộ: không có <code>await</code>, handler chạy một mạch từ đầu tới cuối, không event nào chen vào. SQLite nằm ngay cạnh object nên đọc ghi rất nhanh.`,
+          c: `create(name) {
+  if (this.ctx.storage.kv.get("r")) return { err: "TAKEN" };   // mã đã có người dùng
+  const room = newRoom(name);                                   // ghế 0, token ngẫu nhiên
+  this.ctx.storage.kv.put("r", room);                           // 1 dòng ghi
+  this.room = room;                                             // cache trong RAM
+  return { token: room.seats[0].token, seat: 0 };
+}` },
+        { t: "Kết quả quay về Worker", a: ["do", "worker"], f: ["do", "worker", "{ token, seat: 0 }"],
+          s: { do: "xong, rảnh · RAM: this.room", worker: "nhận kết quả RPC" },
+          b: `Output gate giữ kết quả lại cho tới khi lệnh ghi đã bền. Vì vậy Worker không bao giờ nhận kết quả của một lần ghi chưa được lưu.` },
+        { t: "Worker trả JSON cho trình duyệt", a: ["worker", "edge", "client"], f: ["worker", "client", "200 { code: \"K7QM2P\", token, seat: 0 }"],
+          s: { client: "có code + token", edge: "chờ request", worker: "xong request này; isolate vẫn ấm" },
+          b: `Lời gọi <code>fetch</code> của Worker kết thúc. Worker không nhớ gì về phòng này; lần sau một isolate khác hoàn toàn cũng xử lý phòng này y như vậy.` },
+        { t: "10 giây sau: phòng ngủ", a: ["do"], f: null,
+          s: { do: "đã ngủ · RAM: mất" },
+          b: `Không có event thì không có code nào chạy. Sau khoảng 10 giây im lặng, object bị gỡ khỏi RAM và <code>this.room</code> mất. Bản ghi <code>r</code> vẫn nằm trong storage, chờ An mở WebSocket (bài 6).` }
+      ]
+    },
+
+    ws: {
+      title: "Mở WebSocket rồi gửi tin",
+      init: { client: "có code + token", edge: "0 socket", worker: "isolate ấm", do: "đã ngủ · RAM: trống", store: "r = { v: 1, seats: [An] }" },
+      steps: [
+        { t: "Trình duyệt xin nâng cấp lên WebSocket", a: ["client", "edge", "worker"], f: ["client", "worker", "GET /cangua/ws/K7QM2P · Upgrade: websocket"],
+          s: { client: "đang kết nối", worker: "fetch() cho request nâng cấp" },
+          b: `<code>new WebSocket(url)</code> bắt đầu bằng một request HTTP GET có header <code>Upgrade: websocket</code>. Request này đi y như HTTP thường: edge rồi tới Worker.`,
+          c: `const ws = new WebSocket("wss://games.example/cangua/ws/" + code);
+ws.onopen = () => ws.send(JSON.stringify({ type: "hello", token }));
+ws.onmessage = (e) => render(JSON.parse(e.data));` },
+        { t: "Worker chuyển nguyên request sang phòng", a: ["worker", "do"], f: ["worker", "do", "stub.fetch(request)"],
+          s: { worker: "chờ response của DO", do: "constructor() → fetch()" },
+          b: `Worker kiểm tra header, tìm phòng theo mã rồi chuyển nguyên request sang DO. Kiểm tra ở Worker trước để request rác không tốn request DO. Phòng đang ngủ nên constructor chạy trước <code>fetch</code>.`,
+          c: `if (request.headers.get("Upgrade") !== "websocket") return new Response(null, { status: 426 });
+return env.ROOM.getByName(code).fetch(request);` },
+        { t: "DO tạo cặp socket, giữ đầu server", a: ["do"], f: null,
+          s: { do: "fetch(): acceptWebSocket(server)", edge: "1 socket, gắn với Room K7QM2P" },
+          b: `<code>new WebSocketPair()</code> cho hai đầu nối với nhau. DO giữ đầu <code>server</code> bằng <code>ctx.acceptWebSocket(server)</code>; đây là Hibernation API, cho phép object ngủ mà socket không đứt. Đầu <code>client</code> được trả về trong response 101.`,
+          c: `fetch(request) {
+  const [client, server] = Object.values(new WebSocketPair());
+  this.ctx.acceptWebSocket(server);              // không dùng server.accept()
+  return new Response(null, { status: 101, webSocket: client });
+}` },
+        { t: "101 Switching Protocols", a: ["do", "worker", "edge", "client"], f: ["do", "client", "101 + đầu client của socket"],
+          s: { client: "socket mở", worker: "fetch() đã trả về, hết việc", do: "rảnh · RAM: trống" },
+          b: `Từ đây Worker hết vai trò. Kết nối nằm ở edge, và runtime biết socket này thuộc về Room K7QM2P. Các tin sau không chạy lại dòng code nào của Worker và không tính là request Worker.` },
+        { t: "Tin đầu tiên: hello", a: ["client", "edge", "do"], f: ["client", "do", "{\"type\":\"hello\",\"token\":\"…\"}"], dim: ["worker"],
+          s: { worker: "không tham gia", do: "webSocketMessage() · RAM: this.room" },
+          b: `Tin đi thẳng từ edge vào handler <code>webSocketMessage(ws, raw)</code> của DO. DO đọc phòng (một lần <code>kv.get</code>, rồi cache trong RAM), kiểm tra token, ghi định danh người chơi vào attachment của socket.`,
+          c: `webSocketMessage(ws, raw) {
+  const msg = JSON.parse(raw);
+  const room = (this.room ??= this.ctx.storage.kv.get("r"));
+  const player = findPlayerByToken(room, msg.token);
+  ws.serializeAttachment({ player });     // tối đa 16 KB, còn qua giấc ngủ
+  ws.send(JSON.stringify(stateFor(room, player)));
+}` },
+        { t: "DO gửi state xuống", a: ["do", "edge", "client"], f: ["do", "client", "{\"type\":\"state\", …}"], dim: ["worker"],
+          s: { client: "hiển thị phòng chờ", do: "rảnh · RAM: this.room" },
+          b: `Tin gửi xuống không tính tiền. Muốn gửi cho cả phòng, DO lặp qua <code>this.ctx.getWebSockets()</code>: danh sách socket đang gắn với chính object này, còn nguyên cả sau khi ngủ dậy.` },
+        { t: "Im lặng 10 giây: DO ngủ", a: ["do"], f: null, dim: ["worker"],
+          s: { do: "đã ngủ · RAM: mất", edge: "1 socket vẫn mở" },
+          b: `Không event, không timer, không I/O dở: object đủ điều kiện ngủ và bị gỡ khỏi RAM. <code>this.room</code> mất. Socket vẫn mở ở edge, attachment vẫn còn.` },
+        { t: "Ping: edge tự trả pong", a: ["client", "edge"], f: ["client", "edge", "\"ping\" → \"pong\""], dim: ["worker"],
+          b: `<code>setWebSocketAutoResponse</code> cho edge trả lời luôn. DO không bị đánh thức, không tính duration.` },
+        { t: "Tin act: DO thức dậy", a: ["client", "edge", "do", "store"], f: ["client", "do", "{\"type\":\"act\", …}"], dim: ["worker"],
+          s: { do: "constructor() → webSocketMessage() · RAM: this.room", store: "r = { v: 2, … }" },
+          b: `Có tin thật nên runtime dựng lại object: constructor chạy, rồi <code>webSocketMessage</code>. <code>this.room</code> đã mất nên đọc lại <code>kv.get("r")</code> một lần, áp luật, <code>kv.put</code>, rồi gửi state mới cho mọi socket.` },
+        { t: "Đóng tab", a: ["client", "edge", "do"], f: ["client", "do", "close"], dim: ["worker"],
+          s: { client: "đã đóng", edge: "0 socket", do: "webSocketClose()" },
+          b: `Runtime gọi <code>webSocketClose(ws, code, reason, wasClean)</code>. Từ compat date 2026-04-07, runtime tự trả lời khung Close; trước đó phải gọi <code>ws.close()</code> trong handler. Attachment của socket mất theo.` }
+      ]
+    },
+
+    conc: {
+      title: "4 người bấm cùng lúc",
+      dim: ["worker"],
+      init: { client: "An, Bình, Chi, Dũng", edge: "4 socket", worker: "không tham gia", do: "thức · RAM: this.room v=7", store: "r = { v: 7 }" },
+      steps: [
+        { t: "4 tin tới gần như cùng lúc", a: ["client", "edge", "do"], f: ["client", "do", "A, B, C, D gửi act trong vòng 5 ms"], q: ["A", "B", "C", "D"],
+          s: { do: "nhận 4 tin, xếp hàng:" },
+          b: `Cả 4 tin cùng thuộc Room K7QM2P nên cùng tới một object duy nhất. Không có bản thứ hai của phòng này để chia việc, và không có constructor nào chạy thêm. Các tin xếp hàng.` },
+        { t: "Xử lý tin của A từ đầu tới cuối", a: ["do", "store"], f: ["do", "store", "kv.put(\"r\") → v = 8"], q: ["B", "C", "D"],
+          s: { do: "webSocketMessage(A) · đang chờ:", store: "r = { v: 8 }" },
+          b: `Handler của A chạy một mạch: đọc, kiểm tra luật, ghi, gửi state cho cả phòng. Không có <code>await</code> nào ở giữa, nên B không thể chen vào lúc A mới làm được một nửa.` },
+        { t: "B chạy trên state mới", a: ["do"], f: null, q: ["C", "D"],
+          s: { do: "webSocketMessage(B) · đang chờ:" },
+          b: `B được xử lý với state sau nước của A. Nếu luật nói chưa tới lượt B, B nhận lỗi và không có gì được ghi. Luật luôn chạy trên state mới nhất, nên không cần khóa.` },
+        { t: "C rồi D", a: ["do", "store"], f: null, q: [],
+          s: { do: "webSocketMessage(C), rồi (D)", store: "r = { v: 9 }" },
+          b: `Tương tự. Mỗi handler tốn khoảng một mili giây CPU, nên người chơi không cảm nhận được hàng đợi. Một object chịu được khoảng 500–1.000 request đơn giản mỗi giây.` },
+        { t: "Cùng lúc đó, ở phòng khác", a: ["do"], f: null,
+          s: { do: "K7QM2P rảnh · 9ZX4TT (object khác) đang chạy" },
+          b: `Phòng 9ZX4TT là một object khác, có hàng đợi riêng, chạy song song, có thể ở máy khác. Song song xảy ra giữa các phòng; tuần tự xảy ra trong một phòng.` },
+        { t: "Ngoại lệ: await ra ngoài", a: ["do"], f: null,
+          s: { do: "await fetch(): event khác có thể chen vào" },
+          b: `Trong lúc DO chờ <code>fetch()</code> tới một dịch vụ ngoài, event khác có thể chạy xen vào. Trong lúc chờ thao tác storage thì không. Room engine tránh hẳn chuyện này: handler không gọi mạng ra ngoài.`,
+          c: `async webSocketMessage(ws, raw) {
+  const room = this.room;
+  const res = await fetch("https://api.example/check");   // event khác có thể chạy ở đây
+  room.v++;                                                // room có thể đã bị event khác đổi
+}` }
+      ]
+    },
+
+    sleep: {
+      title: "Phòng ngủ rồi thức",
+      dim: ["worker"],
+      init: { client: "An và Bình, socket mở", edge: "2 socket", worker: "không tham gia", do: "thức · RAM: this.room v=12", store: "r = { v: 12 } · alarm t=60 s" },
+      steps: [
+        { t: "t = 0 s: nước đi cuối", a: ["client", "edge", "do", "store"], f: ["client", "do", "act của An"],
+          b: `An vừa đi. DO ghi <code>r</code> và hẹn alarm ở hạn lượt của Bình, 60 giây nữa. Alarm được lưu trong storage, không nằm trong RAM.` },
+        { t: "t = 0–10 s: rảnh", a: [], f: null,
+          s: { do: "rảnh, ngủ được · không tính duration" },
+          b: `Không event, không <code>setTimeout</code>, không I/O dở. Object rảnh và đủ điều kiện ngủ; theo bảng giá, giai đoạn này không bị tính duration.` },
+        { t: "t ≈ 10 s: ngủ", a: ["do"], f: null,
+          s: { do: "đã ngủ · RAM: mất" },
+          b: `Object bị gỡ khỏi RAM, <code>this.room</code> mất. Socket, attachment, storage và alarm vẫn còn. Không có hook nào chạy trước lúc ngủ, nên cái gì cần giữ phải được ghi từ trước.` },
+        { t: "t = 30 s: ping", a: ["client", "edge"], f: ["client", "edge", "\"ping\" → \"pong\""],
+          b: `Edge tự trả pong. DO vẫn ngủ.` },
+        { t: "t = 60 s: alarm kêu", a: ["do", "store"], f: ["store", "do", "tới hạn alarm → gọi alarm()"],
+          s: { do: "constructor() → alarm() · RAM: this.room", store: "r = { v: 13 } · alarm t=120 s" },
+          b: `Runtime dựng lại object: constructor chạy trước, rồi <code>alarm()</code>. Handler đọc <code>r</code>, thấy Bình hết giờ, cho đi một nước tự động, ghi <code>r</code>, gửi state cho cả phòng, rồi hẹn alarm cho hạn kế tiếp.` },
+        { t: "t = 61 s: An gửi act", a: ["client", "edge", "do", "store"], f: ["client", "do", "act của An"],
+          s: { do: "thức · gọi thẳng webSocketMessage()", store: "r = { v: 14 } · alarm t=121 s" },
+          b: `Object vẫn đang trong RAM (chưa đủ 10 giây im lặng), nên không có constructor: handler được gọi thẳng và dùng luôn <code>this.room</code>.` },
+        { t: "Deploy bản mới", a: ["edge", "do"], f: null,
+          s: { do: "đã ngủ → lần thức sau chạy code mới" },
+          b: `Deploy lúc phòng đang ngủ: lần thức kế tiếp chạy code mới, socket giữ nguyên. Nếu object bị ép nhận code mới trong lúc đang thức, socket bị ngắt; client tự kết nối lại và gửi <code>hello</code>, state vẫn nằm trong storage.` }
+      ]
+    }
+  };
+
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function splitComment(line) {
+    let q = null;
+    for (let i = 0; i < line.length - 1; i++) {
+      const ch = line[i];
+      if (q) { if (ch === "\\") { i++; continue; } if (ch === q) q = null; continue; }
+      if (ch === '"' || ch === "'" || ch === "`") { q = ch; continue; }
+      if (ch === "/" && line[i + 1] === "/") return [line.slice(0, i), line.slice(i)];
+    }
+    return [line, ""];
+  }
+  function hl(src) {
+    return src.split("\n").map(function (line) {
+      const parts = splitComment(line);
+      return esc(parts[0]) + (parts[1] ? '<span class="c">' + esc(parts[1]) + "</span>" : "");
+    }).join("\n");
+  }
+  document.querySelectorAll("main pre > code").forEach(function (c) { c.innerHTML = hl(c.textContent); });
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function mount(root) {
+    const sc = SC[root.dataset.scenario];
+    if (!sc) return;
+    const states = [];
+    let cur = Object.assign({}, sc.init), queue = [];
+    sc.steps.forEach(function (st) {
+      cur = Object.assign({}, cur, st.s || {});
+      if (st.q) queue = st.q;
+      states.push({ s: cur, q: queue });
+    });
+
+    root.setAttribute("role", "group");
+    root.setAttribute("aria-label", "Mô phỏng: " + sc.title);
+    const head = el("div", "sim-head");
+    const count = el("span", "sim-count");
+    head.append(el("span", "sim-kicker", "Mô phỏng"), el("span", "sim-title", sc.title), count);
+
+    const stage = el("div", "sim-stage");
+    const nodes = {};
+    NODES.forEach(function (pair) {
+      const k = pair[0];
+      const n = el("div", "node");
+      n.style.setProperty("--c", "var(--" + k + ")");
+      n.style.setProperty("--cb", "var(--" + k + "-bg)");
+      const st = el("span", "st"), q = el("span", "q");
+      n.append(el("span", "nm", pair[1]), st, q);
+      stage.append(n);
+      nodes[k] = { n: n, st: st, q: q };
+    });
+
+    const flow = el("div", "sim-flow");
+    const ff = el("span", "who"), ft = el("span", "who"), fl = el("span", "lbl");
+    flow.append(ff, el("span", "arr", "→"), ft, fl);
+
+    const body = el("div", "sim-body");
+    body.setAttribute("aria-live", "polite");
+    const h = el("h4"), p = el("p"), pre = el("pre"), code = el("code");
+    pre.append(code);
+    body.append(h, p, pre);
+
+    const ctrl = el("div", "sim-ctrl");
+    const prev = el("button", "prev", "← Trước"), next = el("button", "next", "Tiếp →");
+    prev.type = "button"; next.type = "button";
+    ctrl.append(prev, next);
+
+    const list = el("ol", "sim-steps");
+    const btns = sc.steps.map(function (st, j) {
+      const li = el("li"), b = el("button", null, st.t);
+      b.type = "button";
+      b.addEventListener("click", function () { go(j); });
+      li.append(b); list.append(li);
+      return b;
+    });
+
+    root.append(head, stage, flow, body, ctrl, list);
+
+    let i = 0;
+    function go(n) { i = Math.max(0, Math.min(sc.steps.length - 1, n)); render(); }
+    function render() {
+      const st = sc.steps[i], S = states[i], dim = st.dim || sc.dim || [];
+      count.textContent = "Bước " + (i + 1) + "/" + sc.steps.length;
+      NODES.forEach(function (pair) {
+        const k = pair[0], o = nodes[k], on = st.a.indexOf(k) >= 0;
+        o.n.classList.toggle("on", on);
+        o.n.classList.toggle("dim", !on && dim.indexOf(k) >= 0);
+        o.st.textContent = S.s[k] || "";
+        o.q.replaceChildren();
+        const showQ = k === "do" && S.q.length > 0;
+        if (showQ) S.q.forEach(function (x) { o.q.append(el("span", null, x)); });
+        o.q.hidden = !showQ;
+      });
+      if (st.f) {
+        flow.hidden = false;
+        ff.textContent = NAME[st.f[0]]; ff.className = "who " + st.f[0];
+        ft.textContent = NAME[st.f[1]]; ft.className = "who " + st.f[1];
+        fl.textContent = st.f[2];
+      } else {
+        flow.hidden = true;
+      }
+      h.textContent = st.t;
+      p.innerHTML = st.b;
+      if (st.c) { pre.hidden = false; code.innerHTML = hl(st.c); } else { pre.hidden = true; }
+      prev.disabled = i === 0;
+      next.disabled = i === sc.steps.length - 1;
+      btns.forEach(function (b, j) { if (j === i) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current"); });
+    }
+    prev.addEventListener("click", function () { go(i - 1); });
+    next.addEventListener("click", function () { go(i + 1); });
+    root.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight") { go(i + 1); e.preventDefault(); }
+      else if (e.key === "ArrowLeft") { go(i - 1); e.preventDefault(); }
+    });
+    render();
+  }
+
+  document.querySelectorAll(".sim[data-scenario]").forEach(mount);
+})();
+</script>
+</div>
+
+</body></html>
