@@ -1,0 +1,8 @@
+{
+  "name": "llm-cognitive-virus-video",
+  "private": true,
+  "description": "Renders the 60-second explainer video for the LLM cognitive virus note",
+  "dependencies": {
+    "@napi-rs/canvas": "^1.1.0"
+  }
+}
