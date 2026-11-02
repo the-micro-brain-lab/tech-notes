@@ -35,8 +35,8 @@ Font được tải trong `site.css`, note không cần link Google Fonts riêng
    tham chiếu tới runtime của claude.ai (`/_runtime/…`, `window.claude`).
 2. Trong `<head>`:
    ```html
-   <link rel="stylesheet" href="../../assets/site.css">
-   <script src="../../assets/toc.js" defer></script>
+   <link rel="stylesheet" href="../../assets/site.css?v=N">
+   <script src="../../assets/toc.js?v=N" defer></script>
    ```
 3. Ngay sau `<body>`, khối `<nav class="site-nav">` (copy từ note có sẵn).
 4. Trỏ màu trung tính và font của note vào token `--note-*` (bảng trên), bỏ link Google Fonts riêng.
@@ -50,3 +50,5 @@ Font được tải trong `site.css`, note không cần link Google Fonts riêng
    Grid gợi ý: `@media (min-width: 1100px) { .shell { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: 3rem; } }`.
 6. Thêm một `<li>` vào danh sách trong `index.html` (mới nhất ở trên).
 7. Commit và push lên `main`.
+
+Khi sửa `site.css` hoặc `toc.js`, tăng số `?v=N` trong link ở mọi trang để trình duyệt không dùng bản cũ trong cache.
