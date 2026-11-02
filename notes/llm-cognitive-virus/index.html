@@ -40,7 +40,10 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font
 a{color:var(--U);text-underline-offset:3px}
 a:focus-visible,button:focus-visible,input:focus-visible,canvas:focus-visible{outline:2px solid var(--U);outline-offset:3px;border-radius:4px}
 img,svg,canvas{max-width:100%}
-.wrap{max-width:68rem;margin:0 auto;padding:0 1.25rem}
+.wrap{max-width:76rem;margin:0 auto;padding:0 1.25rem}
+.shell{display:grid;grid-template-columns:minmax(0,1fr)}
+.col{min-width:0}
+@media (min-width:1100px){.shell{grid-template-columns:13rem minmax(0,1fr);gap:3rem}}
 .prose{max-width:41rem}
 h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.12;letter-spacing:-.01em;margin:0}
 h1{font-size:clamp(2.5rem,6.4vw,4.4rem);font-variation-settings:"opsz" 144;letter-spacing:-.025em;line-height:1}
@@ -51,9 +54,11 @@ i,.v{font-family:var(--serif);font-style:italic}
 sub{font-size:.7em}
 
 /* hero */
-.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,430px);gap:3rem;align-items:center;padding:3.5rem 0 2.5rem}
-.hero .lede{font-size:1.15rem;max-width:34rem;margin-top:1.4rem}
-.hero .meta{color:var(--muted);font-size:.92rem;max-width:34rem}
+.hero{padding:3.5rem 0 1rem}
+.hero .lede{font-size:1.15rem;margin-top:1.4rem}
+.hero .meta{color:var(--muted);font-size:.92rem}
+/* Population simulation: dish on the left, readouts and controls on the right. */
+.hero-fig{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:2rem;align-items:center;margin:1.8rem 0 0;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:1.2rem}
 .dish{position:relative;width:100%;aspect-ratio:1}
 .dish canvas{position:absolute;inset:0;width:100%;height:100%}
 .spark{position:relative;width:100%;height:46px;margin-top:.6rem}
@@ -63,12 +68,24 @@ sub{font-size:.7em}
 .dot{width:.7rem;height:.7rem;border-radius:50%;display:inline-block;flex:none}
 .dot.u{background:var(--U)}.dot.c{background:var(--C)}.dot.d{background:var(--D)}
 .hint{font-size:.9rem;color:var(--muted);margin:.5rem 0 0}
-@media (max-width:820px){.hero{grid-template-columns:1fr;gap:2rem;padding-top:2rem}.hero-fig{max-width:430px}}
+@media (max-width:820px){.hero{padding-top:2rem}.hero-fig{grid-template-columns:minmax(0,1fr);gap:1rem}.dish{max-width:400px;margin:0 auto}}
 
-nav.toc{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:.8rem 0;margin-bottom:1rem}
-nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.35rem 1.3rem;font-size:.9rem}
+/* Contents: a row of links on narrow screens, a sticky rail on the left from 1100px. */
+nav.toc{border-bottom:1px solid var(--line);padding:.8rem 0;margin-top:1rem}
+nav.toc p{display:none;margin:0 0 .6rem;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.35rem 1.3rem;font-size:.9rem;counter-reset:toc}
 nav.toc a{color:var(--muted);text-decoration:none}
 nav.toc a:hover{color:var(--ink);text-decoration:underline}
+nav.toc a.on{color:var(--ink)}
+@media (min-width:1100px){
+  nav.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 1rem);align-self:start;max-height:calc(100vh - 2rem);overflow-y:auto;border:0;padding:3.5rem 0 0;margin:0}
+  nav.toc p{display:block}
+  nav.toc ol{display:grid;gap:.1rem;font-size:.875rem}
+  nav.toc li{counter-increment:toc}
+  nav.toc a{display:flex;gap:.5rem;padding:.3rem .5rem;border-radius:6px;line-height:1.35}
+  nav.toc a::before{content:counter(toc);font-variant-numeric:tabular-nums;font-size:.75rem;color:var(--U);min-width:1rem;padding-top:.1rem}
+  nav.toc a:hover,nav.toc a.on{background:var(--paper);text-decoration:none}
+}
 
 section{padding:3.5rem 0 1rem}
 .note{border-left:3px solid var(--C);padding:.2rem 0 .2rem 1rem;color:var(--muted);font-size:.96rem;max-width:41rem}
@@ -160,32 +177,10 @@ footer{border-top:1px solid var(--line);margin-top:4rem;padding:1.5rem 0 3rem;fo
   </div>
 </nav>
 <div class="wrap">
-
-<header class="hero">
-  <div>
-    <h1>LLM như một virus nhận thức</h1>
-    <p class="lede">Bài báo này mô hình hóa việc cả một xã hội dần giao việc suy nghĩ cho LLM bằng đúng công cụ người ta dùng cho dịch bệnh. Kết luận đáng chú ý nhất: sự thay đổi có thể đến đột ngột, và khi đã xảy ra thì rất khó đảo ngược.</p>
-    <p class="meta">Bài gốc của Ricard Solé, Giulio Ruffini, David Krakauer, Michael Levin và cộng sự, <a href="https://arxiv.org/abs/2609.03344" target="_blank" rel="noopener">arXiv:2609.03344</a>, tháng 9/2026. Trang này là bản đọc tương tác để tự học.</p>
-  </div>
-  <figure class="hero-fig" style="margin:0">
-    <div class="dish"><canvas id="cv-dish" role="img" aria-label="Mô phỏng một quần thể 440 người chuyển đổi giữa ba trạng thái"></canvas></div>
-    <div class="counts" aria-live="off">
-      <span><i class="dot u"></i>Tự chủ <b id="h-u">99%</b></span>
-      <span><i class="dot c"></i>Dùng có kiểm soát <b id="h-c">1%</b></span>
-      <span><i class="dot d"></i>Lệ thuộc <b id="h-d">0%</b></span>
-    </div>
-    <div class="spark"><canvas id="cv-spark" aria-hidden="true"></canvas></div>
-    <div class="ctl" data-param="lambda" style="margin-top:.7rem"></div>
-    <div class="btns" style="margin:.6rem 0 0">
-      <button class="btn" id="h-play" type="button">Tạm dừng</button>
-      <button class="btn" id="h-seed" type="button">Thêm 30 người dùng</button>
-      <button class="btn" id="h-reset" type="button">Làm lại</button>
-    </div>
-    <p class="hint">Mỗi chấm là một người. Kéo λ lên khoảng 0,6 và chờ vài giây. Khi quần thể đã đổi màu, kéo λ về 0,45: nó không quay lại. Phải xuống dưới 0,40 mới về.</p>
-  </figure>
-</header>
+<div class="shell">
 
 <nav class="toc" aria-label="Mục lục">
+  <p>Mục lục</p>
   <ol>
     <li><a href="#y-tuong">Hai lực kéo</a></li>
     <li><a href="#ba-trang-thai">Ba trạng thái</a></li>
@@ -200,6 +195,33 @@ footer{border-top:1px solid var(--line);margin-top:4rem;padding:1.5rem 0 3rem;fo
     <li><a href="#thuat-ngu">Thuật ngữ</a></li>
   </ol>
 </nav>
+
+<div class="col">
+<header class="hero">
+  <div class="prose">
+    <h1>LLM như một virus nhận thức</h1>
+    <p class="lede">Bài báo này mô hình hóa việc cả một xã hội dần giao việc suy nghĩ cho LLM bằng đúng công cụ người ta dùng cho dịch bệnh. Kết luận đáng chú ý nhất: sự thay đổi có thể đến đột ngột, và khi đã xảy ra thì rất khó đảo ngược.</p>
+    <p class="meta">Bài gốc của Ricard Solé, Giulio Ruffini, David Krakauer, Michael Levin và cộng sự, <a href="https://arxiv.org/abs/2609.03344" target="_blank" rel="noopener">arXiv:2609.03344</a>, tháng 9/2026. Trang này là bản đọc tương tác để tự học.</p>
+  </div>
+  <figure class="hero-fig">
+    <div class="dish"><canvas id="cv-dish" role="img" aria-label="Mô phỏng một quần thể 440 người chuyển đổi giữa ba trạng thái"></canvas></div>
+    <div class="hero-side">
+    <div class="counts" aria-live="off">
+      <span><i class="dot u"></i>Tự chủ <b id="h-u">99%</b></span>
+      <span><i class="dot c"></i>Dùng có kiểm soát <b id="h-c">1%</b></span>
+      <span><i class="dot d"></i>Lệ thuộc <b id="h-d">0%</b></span>
+    </div>
+    <div class="spark"><canvas id="cv-spark" aria-hidden="true"></canvas></div>
+    <div class="ctl" data-param="lambda" style="margin-top:.7rem"></div>
+    <div class="btns" style="margin:.6rem 0 0">
+      <button class="btn" id="h-play" type="button">Tạm dừng</button>
+      <button class="btn" id="h-seed" type="button">Thêm 30 người dùng</button>
+      <button class="btn" id="h-reset" type="button">Làm lại</button>
+    </div>
+    <p class="hint">Mỗi chấm là một người. Kéo λ lên khoảng 0,6 và chờ vài giây. Khi quần thể đã đổi màu, kéo λ về 0,45: nó không quay lại. Phải xuống dưới 0,40 mới về.</p>
+    </div>
+  </figure>
+</header>
 
 <main>
 
@@ -526,9 +548,11 @@ footer{border-top:1px solid var(--line);margin-top:4rem;padding:1.5rem 0 3rem;fo
 </section>
 
 </main>
-<footer>
+<footer class="prose">
   <p>Nguồn: Solé R., Ruffini G., Castaldo F., Tuccio M., Seoane L. F., De Domenico M., Elena S. F., Krakauer D. C., Levin M. “Large-Language Models as a Cognitive Virus”, <a href="https://arxiv.org/abs/2609.03344" target="_blank" rel="noopener">arXiv:2609.03344</a> (2026). Mô phỏng trong trang dùng tham số minh họa của bài báo; phần mô phỏng cá thể ở đầu trang là phiên bản ngẫu nhiên của cùng hệ phương trình, có thêm một xác suất rất nhỏ tự tiếp xúc với LLM để quần thể không bao giờ “sạch” hoàn toàn.</p>
 </footer>
+</div>
+</div>
 </div>
 
 <script>
@@ -1067,6 +1091,13 @@ const onTheme = () => { readColors(); schedule(); };
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
 new MutationObserver(onTheme).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme','class','style']});
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+
+/* ---------- contents rail: highlight the section being read ---------- */
+const tocLinks = $$('nav.toc a'), tocMap = new Map(tocLinks.map(a => [a.getAttribute('href').slice(1), a]));
+const tocIO = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting){ tocLinks.forEach(a => a.classList.remove('on')); tocMap.get(e.target.id)?.classList.add('on'); }
+}), {rootMargin:'-30% 0px -60% 0px'});
+$$('main section[id]').forEach(s => tocIO.observe(s));
 
 heroReset();
 for (let i=0;i<20;i++) heroStep(0.3);
