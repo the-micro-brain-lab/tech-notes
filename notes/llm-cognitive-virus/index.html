@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LLM như một virus nhận thức: đọc tương tác</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;1,400&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F3F8; --paper:#FFFFFF; --ink:#221D30; --muted:#5F5973; --line:#DBD6E6;
+  --U:#3D46A8; --C:#B5740F; --D:#C23A6E; --G:#1D7A69;
+  --U-t:rgba(61,70,168,.13); --C-t:rgba(214,150,30,.22); --D-t:rgba(194,58,110,.13);
+  --serif:"Fraunces", Georgia, "Times New Roman", serif;
+  --sans:"Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15131C; --paper:#1D1A27; --ink:#ECE9F4; --muted:#A49EB7; --line:#34304A;
+    --U:#929AF2; --C:#E9AE4C; --D:#F27FA8; --G:#52C7AD;
+    --U-t:rgba(146,154,242,.16); --C-t:rgba(233,174,76,.2); --D-t:rgba(242,127,168,.15);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15131C; --paper:#1D1A27; --ink:#ECE9F4; --muted:#A49EB7; --line:#34304A;
+  --U:#929AF2; --C:#E9AE4C; --D:#F27FA8; --G:#52C7AD;
+  --U-t:rgba(146,154,242,.16); --C-t:rgba(233,174,76,.2); --D-t:rgba(242,127,168,.15);
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.68;-webkit-font-smoothing:antialiased}
+a{color:var(--U);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,input:focus-visible,canvas:focus-visible{outline:2px solid var(--U);outline-offset:3px;border-radius:4px}
+img,svg,canvas{max-width:100%}
+.wrap{max-width:68rem;margin:0 auto;padding:0 1.25rem}
+.prose{max-width:41rem}
+h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.12;letter-spacing:-.01em;margin:0}
+h1{font-size:clamp(2.5rem,6.4vw,4.4rem);font-variation-settings:"opsz" 144;letter-spacing:-.025em;line-height:1}
+h2{font-size:clamp(1.65rem,3.2vw,2.15rem);font-variation-settings:"opsz" 96;margin-bottom:1rem}
+h3{font-size:1.25rem;margin:2rem 0 .5rem}
+p{margin:0 0 1rem}
+i,.v{font-family:var(--serif);font-style:italic}
+sub{font-size:.7em}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,430px);gap:3rem;align-items:center;padding:3.5rem 0 2.5rem}
+.hero .lede{font-size:1.15rem;max-width:34rem;margin-top:1.4rem}
+.hero .meta{color:var(--muted);font-size:.92rem;max-width:34rem}
+.dish{position:relative;width:100%;aspect-ratio:1}
+.dish canvas{position:absolute;inset:0;width:100%;height:100%}
+.spark{position:relative;width:100%;height:46px;margin-top:.6rem}
+.spark canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:4px}
+.counts{display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-size:.86rem;margin:.6rem 0 .2rem}
+.counts span{display:inline-flex;align-items:center;gap:.4rem;font-variant-numeric:tabular-nums}
+.dot{width:.7rem;height:.7rem;border-radius:50%;display:inline-block;flex:none}
+.dot.u{background:var(--U)}.dot.c{background:var(--C)}.dot.d{background:var(--D)}
+.hint{font-size:.9rem;color:var(--muted);margin:.5rem 0 0}
+@media (max-width:820px){.hero{grid-template-columns:1fr;gap:2rem;padding-top:2rem}.hero-fig{max-width:430px}}
+
+nav.toc{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:.8rem 0;margin-bottom:1rem}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.35rem 1.3rem;font-size:.9rem}
+nav.toc a{color:var(--muted);text-decoration:none}
+nav.toc a:hover{color:var(--ink);text-decoration:underline}
+
+section{padding:3.5rem 0 1rem}
+.note{border-left:3px solid var(--C);padding:.2rem 0 .2rem 1rem;color:var(--muted);font-size:.96rem;max-width:41rem}
+
+/* figures */
+.fig{margin:1.8rem 0;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:1.1rem 1.2rem 1rem}
+.fig figcaption{font-size:.88rem;color:var(--muted);margin-top:.75rem;max-width:52rem;line-height:1.55}
+.fig figcaption b{color:var(--ink);font-weight:600}
+.cv{position:relative;width:100%}
+.cv canvas{position:absolute;inset:0;width:100%;height:100%}
+.r-ts{aspect-ratio:16/8}.r-bif{aspect-ratio:16/8.5}.r-pot{aspect-ratio:16/9}.r-phase{aspect-ratio:16/10}.r-mini{aspect-ratio:16/10}
+@media (max-width:640px){.r-ts,.r-bif,.r-pot{aspect-ratio:4/3.4}.r-phase{aspect-ratio:1}}
+#cv-phase{touch-action:none;cursor:crosshair}
+
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.5rem 1.6rem;margin:0 0 1rem}
+.ctl label{display:flex;align-items:baseline;gap:.45rem;font-size:.86rem;color:var(--muted)}
+.ctl .sym{font-family:var(--serif);font-style:italic;font-size:1.12rem;color:var(--ink);min-width:1.5rem}
+.ctl output{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
+.ctl input{width:100%;margin:.15rem 0 0;accent-color:var(--U)}
+.btns{display:flex;flex-wrap:wrap;gap:.45rem;margin:0 0 1rem}
+button.btn{font:inherit;font-size:.86rem;line-height:1.2;padding:.48rem .9rem;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+button.btn:hover{border-color:var(--ink)}
+button.btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:.3rem 1.2rem;font-size:.84rem;color:var(--muted);margin-top:.5rem}
+.legend span{display:inline-flex;align-items:center;gap:.45rem}
+.sw{width:18px;height:0;border-top:3px solid;display:inline-block}
+.sw.u{border-color:var(--U)}.sw.c{border-color:var(--C)}.sw.d{border-color:var(--D)}.sw.g{border-color:var(--G);border-top-style:dashed}
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem 1.4rem;margin:1rem 0 .2rem;font-size:.84rem;color:var(--muted)}
+.readout b{display:block;font-family:var(--serif);font-size:1.3rem;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.3}
+.status{font-size:.95rem;margin:.7rem 0 0;padding:.55rem .8rem;border-radius:4px;background:var(--bg)}
+.status::before{content:"";display:inline-block;width:.6rem;height:.6rem;border-radius:50%;margin-right:.55rem;background:var(--muted);vertical-align:.05em}
+.status[data-reg="auto"]::before{background:var(--U)}.status[data-reg="bi"]::before{background:var(--C)}.status[data-reg="off"]::before{background:var(--D)}
+
+/* states diagram */
+.states-svg{width:100%;height:auto;display:block}
+.states-svg .nodeU{fill:var(--U-t);stroke:var(--U)}
+.states-svg .nodeC{fill:var(--C-t);stroke:var(--C)}
+.states-svg .nodeD{fill:var(--D-t);stroke:var(--D)}
+.states-svg .big{font-family:var(--serif);font-style:italic;font-size:44px;fill:var(--ink)}
+.states-svg .lab{font-family:var(--sans);font-size:18px;fill:var(--muted)}
+.states-svg .rate{font-family:var(--serif);font-style:italic;font-size:23px;fill:var(--ink)}
+.states-svg .arr{fill:none;stroke:var(--muted);stroke-width:2}
+.states-svg .arr.k{stroke:var(--U);stroke-width:2.5}
+.states-svg .flow{fill:var(--ink)}
+.states-svg .head{fill:var(--muted)}
+@media (prefers-reduced-motion: reduce){.states-svg .flow{display:none}}
+
+dl.defs{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.85rem 1.4rem;margin:1.2rem 0;max-width:46rem}
+dl.defs dt{font-family:var(--serif);font-size:1.1rem;font-weight:600}
+dl.defs dd{margin:0}
+dl.defs dt .tag{display:block;font-family:var(--sans);font-size:.78rem;font-weight:500;color:var(--muted)}
+@media (max-width:560px){dl.defs{grid-template-columns:1fr;gap:.2rem}dl.defs dd{margin-bottom:.8rem}}
+
+.eq{font-family:var(--serif);font-size:1.28rem;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--U);padding:1rem 1.3rem;margin:1.2rem 0;max-width:41rem;overflow-x:auto;line-height:1.9;white-space:nowrap}
+.eq .k{color:var(--U);font-weight:600;background:var(--U-t);padding:0 .2em;border-radius:3px}
+.eq .small{font-size:.9rem;font-family:var(--sans);color:var(--muted);white-space:normal}
+
+.bars{display:grid;gap:.7rem;margin:1rem 0;max-width:40rem}
+.bar{display:grid;grid-template-columns:minmax(0,13rem) minmax(0,1fr) 3.2rem;gap:.8rem;align-items:center;font-size:.86rem}
+.bar .track{height:12px;background:var(--bg);border-radius:6px;overflow:hidden;display:flex}
+.bar .fill{height:100%;background:var(--G);transition:width .25s}
+.bar .fill.c{background:var(--C)}.bar .fill.d{background:var(--D)}
+.bar .val{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+@media (max-width:560px){.bar{grid-template-columns:1fr 3rem}.bar .track{grid-column:1/-1;order:3}}
+
+.table-wrap{overflow-x:auto;margin:1.2rem 0;border:1px solid var(--line);border-radius:6px;background:var(--paper)}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:.9rem}
+th,td{text-align:left;vertical-align:top;padding:.7rem .85rem;border-bottom:1px solid var(--line)}
+th{font-weight:600;font-size:.84rem;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+td.p{font-family:var(--serif);font-style:italic;font-size:1.1rem;white-space:nowrap}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:1.5rem;align-items:start}
+@media (max-width:760px){.split{grid-template-columns:1fr}}
+
+dl.crit{display:grid;grid-template-columns:minmax(0,12rem) minmax(0,1fr);gap:1rem 1.6rem;max-width:52rem;margin:1.4rem 0}
+dl.crit dt{font-weight:600}
+dl.crit dd{margin:0;color:var(--ink)}
+@media (max-width:620px){dl.crit{grid-template-columns:1fr;gap:.2rem}dl.crit dd{margin-bottom:.9rem}}
+
+footer{border-top:1px solid var(--line);margin-top:4rem;padding:1.5rem 0 3rem;font-size:.86rem;color:var(--muted)}
+</style>
+<link rel="stylesheet" href="../../assets/site.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Site">
+  <div class="inner">
+    <a class="brand" href="../../">Tech Notes</a>
+    <div class="links"><a href="../../">Home</a></div>
+  </div>
+</nav>
+<div class="wrap">
+
+<header class="hero">
+  <div>
+    <h1>LLM như một virus nhận thức</h1>
+    <p class="lede">Bài báo này mô hình hóa việc cả một xã hội dần giao việc suy nghĩ cho LLM bằng đúng công cụ người ta dùng cho dịch bệnh. Kết luận đáng chú ý nhất: sự thay đổi có thể đến đột ngột, và khi đã xảy ra thì rất khó đảo ngược.</p>
+    <p class="meta">Bài gốc của Ricard Solé, Giulio Ruffini, David Krakauer, Michael Levin và cộng sự, <a href="https://arxiv.org/abs/2609.03344" target="_blank" rel="noopener">arXiv:2609.03344</a>, tháng 9/2026. Trang này là bản đọc tương tác để tự học.</p>
+  </div>
+  <figure class="hero-fig" style="margin:0">
+    <div class="dish"><canvas id="cv-dish" role="img" aria-label="Mô phỏng một quần thể 440 người chuyển đổi giữa ba trạng thái"></canvas></div>
+    <div class="counts" aria-live="off">
+      <span><i class="dot u"></i>Tự chủ <b id="h-u">99%</b></span>
+      <span><i class="dot c"></i>Dùng có kiểm soát <b id="h-c">1%</b></span>
+      <span><i class="dot d"></i>Lệ thuộc <b id="h-d">0%</b></span>
+    </div>
+    <div class="spark"><canvas id="cv-spark" aria-hidden="true"></canvas></div>
+    <div class="ctl" data-param="lambda" style="margin-top:.7rem"></div>
+    <div class="btns" style="margin:.6rem 0 0">
+      <button class="btn" id="h-play" type="button">Tạm dừng</button>
+      <button class="btn" id="h-seed" type="button">Thêm 30 người dùng</button>
+      <button class="btn" id="h-reset" type="button">Làm lại</button>
+    </div>
+    <p class="hint">Mỗi chấm là một người. Kéo λ lên khoảng 0,6 và chờ vài giây. Khi quần thể đã đổi màu, kéo λ về 0,45: nó không quay lại. Phải xuống dưới 0,40 mới về.</p>
+  </figure>
+</header>
+
+<nav class="toc" aria-label="Mục lục">
+  <ol>
+    <li><a href="#y-tuong">Hai lực kéo</a></li>
+    <li><a href="#ba-trang-thai">Ba trạng thái</a></li>
+    <li><a href="#phuong-trinh">Phương trình</a></li>
+    <li><a href="#theo-thoi-gian">Theo thời gian</a></li>
+    <li><a href="#hai-nguong">Hai ngưỡng</a></li>
+    <li><a href="#vien-bi">Viên bi</a></li>
+    <li><a href="#ban-do-pha">Bản đồ pha</a></li>
+    <li><a href="#nang-luc">Năng lực</a></li>
+    <li><a href="#can-thiep">Can thiệp</a></li>
+    <li><a href="#phe-phan">Phê phán</a></li>
+    <li><a href="#thuat-ngu">Thuật ngữ</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="y-tuong" class="prose">
+  <h2>Hai lực kéo ngược chiều</h2>
+  <p>Người ta học cách dùng LLM từ nhau: đồng nghiệp chỉ cho nhau, trường học và công ty đưa vào quy trình, mẹo hay được chia sẻ. Theo nghĩa đó, thói quen dùng LLM lan như một bệnh truyền nhiễm.</p>
+  <p>Nhưng tư duy độc lập cũng là một thói quen được tập thể nuôi dưỡng. Khi xung quanh còn nhiều người tự đọc, tự viết, tự kiểm chứng, việc làm như vậy dễ hơn và được coi trọng hơn. Khi số người đó giảm, môi trường nâng đỡ tư duy độc lập yếu đi, và việc giao hết cho máy lại càng dễ.</p>
+  <p>Bài báo đặt hai lực này vào cùng một hệ phương trình vi phân. Kết quả: trong một số điều kiện, quần thể nằm yên ở trạng thái tự chủ trong khi áp lực tăng dần, rồi lật hẳn sang trạng thái lệ thuộc khi vượt một ngưỡng. Lật rồi thì phải giảm áp lực xuống thấp hơn hẳn mới lật lại được.</p>
+  <p class="note">Chữ “virus” ở đây là phép so sánh, không phải lời buộc tội. Các tác giả nhắc rằng trong sinh học có virus gây bệnh và có virus cộng sinh có lợi. LLM cũng vậy: lợi hay hại tùy cách dùng.</p>
+</section>
+
+<section id="ba-trang-thai">
+  <div class="prose"><h2>Ba trạng thái, bốn dòng chảy</h2></div>
+  <figure class="fig">
+    <svg class="states-svg" viewBox="0 0 720 262" role="img" aria-label="Sơ đồ ba trạng thái U, C, D và các tốc độ chuyển">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <circle class="nodeU" cx="120" cy="135" r="60" stroke-width="2.5"/>
+      <circle class="nodeC" cx="360" cy="135" r="60" stroke-width="2.5"/>
+      <circle class="nodeD" cx="600" cy="135" r="60" stroke-width="2.5"/>
+      <text class="big" x="120" y="150" text-anchor="middle">U</text>
+      <text class="big" x="360" y="150" text-anchor="middle">C</text>
+      <text class="big" x="600" y="150" text-anchor="middle">D</text>
+      <text class="lab" x="120" y="226" text-anchor="middle">tự chủ</text>
+      <text class="lab" x="360" y="226" text-anchor="middle">dùng có kiểm soát</text>
+      <text class="lab" x="600" y="226" text-anchor="middle">lệ thuộc</text>
+      <path id="p1" class="arr" d="M176 108 Q240 58 304 108" marker-end="url(#ah)"/>
+      <path id="p2" class="arr k" d="M304 164 Q240 214 176 164" marker-end="url(#ah)"/>
+      <path id="p3" class="arr" d="M416 108 Q480 58 544 108" marker-end="url(#ah)"/>
+      <path id="p4" class="arr" d="M544 164 Q480 214 416 164" marker-end="url(#ah)"/>
+      <text class="rate" x="240" y="56" text-anchor="middle">λUC</text>
+      <text class="rate" x="240" y="240" text-anchor="middle">ρC + κU²C</text>
+      <text class="rate" x="480" y="56" text-anchor="middle">μC</text>
+      <text class="rate" x="480" y="240" text-anchor="middle">σD</text>
+      <circle class="flow" r="3.5"><animateMotion dur="2.6s" repeatCount="indefinite"><mpath href="#p1"/></animateMotion></circle>
+      <circle class="flow" r="3.5"><animateMotion dur="2.6s" begin="1.3s" repeatCount="indefinite"><mpath href="#p1"/></animateMotion></circle>
+      <circle class="flow" r="3.5"><animateMotion dur="3.4s" repeatCount="indefinite"><mpath href="#p2"/></animateMotion></circle>
+      <circle class="flow" r="3.5"><animateMotion dur="3.4s" repeatCount="indefinite"><mpath href="#p3"/></animateMotion></circle>
+      <circle class="flow" r="3.5"><animateMotion dur="4.6s" repeatCount="indefinite"><mpath href="#p4"/></animateMotion></circle>
+    </svg>
+    <figcaption><b>Hình 1.</b> Mỗi người ở một trong ba ngăn. Mũi tên phía trên đi về phía lệ thuộc, mũi tên phía dưới quay về phía tự chủ. Mũi tên tô màu chàm chứa số hạng tập thể κU²C, nhân vật chính của mô hình.</figcaption>
+  </figure>
+  <div class="prose">
+    <p>Thử hình dung Minh, một kỹ sư dữ liệu, ở ba giai đoạn khác nhau.</p>
+  </div>
+  <dl class="defs">
+    <dt style="color:var(--U)">U<span class="tag">tự chủ</span></dt>
+    <dd>Minh đọc tài liệu, tra Stack Overflow, tự viết code và tự gỡ lỗi. LLM gần như vắng mặt. Tư duy của anh dựa trên một hệ sinh thái nguồn tin đa dạng: sách, web, đồng nghiệp.</dd>
+    <dt style="color:var(--C)">C<span class="tag">dùng có kiểm soát</span></dt>
+    <dd>Minh hỏi LLM để gợi ý hướng làm, nhưng đọc kỹ, sửa lại, viết test để kiểm tra. Nếu mai LLM ngừng hoạt động, anh vẫn làm được việc, chỉ chậm hơn.</dd>
+    <dt style="color:var(--D)">D<span class="tag">lệ thuộc</span></dt>
+    <dd>LLM trở thành giao diện chính để Minh nghĩ. Anh dán lỗi vào, dán kết quả ra, không còn đọc kỹ. Không có LLM, công việc đứng lại.</dd>
+  </dl>
+  <div class="prose">
+    <p>Một chi tiết quan trọng: mô hình không có mũi tên đi thẳng từ U sang D. Lệ thuộc chỉ hình thành qua giai đoạn dùng thường xuyên.</p>
+    <h3>Giàn giáo hay người làm thay</h3>
+    <p>Bài báo phân biệt hai kiểu dùng công cụ. <b>Giàn giáo</b> (scaffolding) giảm tải lúc này nhưng giữ nguyên hoặc tăng khả năng tự làm về sau. <b>Thay thế</b> (substitution) loại bỏ luôn nhu cầu thực hiện thao tác nhận thức đó. GPS là ví dụ quen thuộc: dùng bản đồ để học đường thì lần sau tự đi được; để giọng nói dẫn từng ngã rẽ suốt nhiều năm thì có khi không nhớ nổi đường về nhà.</p>
+    <p>Vì vậy câu hỏi đúng không phải là có dùng LLM hay không, mà là: bỏ công cụ đi thì còn lại gì? Bước chuyển từ C sang D chính là bước chuyển từ giàn giáo sang thay thế.</p>
+  </div>
+</section>
+
+<section id="phuong-trinh">
+  <div class="prose">
+    <h2>Ba phương trình</h2>
+    <p>Gọi <i>U</i>, <i>C</i>, <i>D</i> là tỷ lệ dân số ở mỗi trạng thái, với <i>U</i> + <i>C</i> + <i>D</i> = 1. Động lực học của hệ:</p>
+  </div>
+  <div class="eq" role="math" aria-label="Hệ phương trình">
+    <div>d<i>U</i>/d<i>t</i> = −<i>λUC</i> + <i>ρC</i> + <span class="k"><i>κU²C</i></span></div>
+    <div>d<i>C</i>/d<i>t</i> = <i>λUC</i> − (<i>μ</i> + <i>ρ</i>)<i>C</i> + <i>σD</i> − <span class="k"><i>κU²C</i></span></div>
+    <div>d<i>D</i>/d<i>t</i> = <i>μC</i> − <i>σD</i></div>
+  </div>
+  <dl class="defs">
+    <dt>λUC<span class="tag">lây lan</span></dt>
+    <dd>Mỗi lần một người tự chủ “gặp” một người đang dùng LLM, có khả năng thói quen được truyền sang. <i>λ</i> gộp mọi áp lực từ xã hội, tổ chức và nền tảng: đồng nghiệp, chính sách công ty, AI tích hợp sẵn trong phần mềm.</dd>
+    <dt>ρC<span class="tag">bỏ dùng</span></dt>
+    <dd>Người dùng thường xuyên quay về trạng thái ít hoặc không dùng.</dd>
+    <dt>μC<span class="tag">trượt dần</span></dt>
+    <dd>Dùng thường xuyên dần trở thành lệ thuộc.</dd>
+    <dt>σD<span class="tag">hồi phục</span></dt>
+    <dd>Nhờ rèn luyện, thói quen kiểm chứng, hoặc chủ động tạo “ma sát”, người lệ thuộc quay về dùng có kiểm soát.</dd>
+    <dt style="color:var(--U)">κU²C<span class="tag">sức kéo tập thể</span></dt>
+    <dd>Xem ngay bên dưới.</dd>
+  </dl>
+  <div class="prose">
+    <h3>Số hạng κU²C làm nên mọi chuyện</h3>
+    <p>Đây là dòng chảy kéo người dùng C về lại U, và cường độ của nó tỷ lệ với <i>U</i>². Bình phương nghĩa là sức kéo tăng nhanh khi người tự chủ còn đông: ở một trường học hay một nhóm làm việc mà ai cũng tự viết, việc tự viết trở thành chuẩn mực, được kỳ vọng và được khen. Khi <i>U</i> giảm, sức kéo này sụt còn nhanh hơn chính <i>U</i>.</p>
+    <p>Sinh thái học gọi hiện tượng này là hiệu ứng Allee: một số loài chỉ tồn tại được khi mật độ đủ cao. Chó hoang châu Phi chẳng hạn cần đàn đủ lớn để săn mồi và bảo vệ con non; dưới một kích thước tới hạn, đàn tự tan rã. Thừa số <i>C</i> nói rằng sức kéo này chỉ tác động lên những người đang dùng LLM.</p>
+    <p>Bỏ số hạng này đi (<i>κ</i> = 0) thì chỉ còn một mô hình lây nhiễm thông thường với chuyển pha êm ái. Chính <i>κU²C</i> tạo ra khả năng hai trạng thái ổn định cùng tồn tại.</p>
+  </div>
+</section>
+
+<section id="theo-thoi-gian">
+  <div class="prose">
+    <h2>Theo dõi một quần thể theo thời gian</h2>
+    <p>Chọn tham số và điểm xuất phát; trang giải hệ phương trình bằng Runge–Kutta bậc 4. Đường nét đứt màu xanh lục là năng lực nhận thức trung bình ⟨<i>Γ</i>⟩, giải thích ở phần <a href="#nang-luc">Năng lực</a>.</p>
+  </div>
+  <figure class="fig">
+    <div class="btns" role="group" aria-label="Kịch bản có sẵn">
+      <button class="btn" type="button" data-preset="low">λ thấp, xuất phát đã nhiễm</button>
+      <button class="btn" type="button" data-preset="midA">Vùng giữa, xuất phát tự chủ</button>
+      <button class="btn" type="button" data-preset="midB">Vùng giữa, xuất phát đã nhiễm</button>
+      <button class="btn" type="button" data-preset="high">λ cao, chỉ vài người dùng</button>
+    </div>
+    <div class="controls">
+      <div class="ctl" data-param="lambda"></div>
+      <div class="ctl" data-param="rho"></div>
+      <div class="ctl" data-param="kappa"></div>
+      <div class="ctl" data-param="mu"></div>
+      <div class="ctl" data-param="sigma"></div>
+      <div class="ctl" data-param="U0"></div>
+      <div class="ctl" data-param="C0"></div>
+      <div class="ctl" data-param="T"></div>
+    </div>
+    <div class="cv r-ts"><canvas id="cv-ts" role="img" aria-label="Đồ thị U, C, D theo thời gian"></canvas></div>
+    <div class="legend"><span><i class="sw u"></i>U tự chủ</span><span><i class="sw c"></i>C dùng có kiểm soát</span><span><i class="sw d"></i>D lệ thuộc</span><span><i class="sw g"></i>⟨Γ⟩ năng lực trung bình</span></div>
+    <div class="readout">
+      <div>U cuối<b id="ts-u">–</b></div>
+      <div>C cuối<b id="ts-c">–</b></div>
+      <div>D cuối<b id="ts-d">–</b></div>
+      <div>⟨Γ⟩ cuối<b id="ts-g">–</b></div>
+    </div>
+    <p class="status" data-reg-out><span data-out="regime"></span></p>
+    <figcaption><b>Hình 2.</b> Hai nút “Vùng giữa” dùng cùng λ = 0,45 nhưng xuất phát khác nhau, và dừng ở hai nơi khác nhau. Đó là tính hai trạng thái ổn định (bistability).</figcaption>
+  </figure>
+  <div class="prose">
+    <p>Trong vùng hai trạng thái có một đường phân thủy rất rõ. Phương trình của <i>U</i> viết gọn được thành d<i>U</i>/d<i>t</i> = <i>C</i>·<i>f</i>(<i>U</i>) với <i>f</i>(<i>U</i>) = <i>ρ</i> − <i>λU</i> + <i>κU</i>². Hai nghiệm của <i>f</i> là hai điểm cân bằng ghép nối: nghiệm nhỏ <i>U</i>*₋ ổn định, nghiệm lớn <i>U</i>*₊ không ổn định. Nếu <i>U</i> ban đầu lớn hơn <i>U</i>*₊ thì <i>f</i> &gt; 0, <i>U</i> chỉ có thể tăng và quần thể về lại tự chủ; nhỏ hơn thì trượt xuống <i>U</i>*₋. Với tham số hiện tại, <i>U</i>*₊ = <b data-out="uplus"></b>.</p>
+  </div>
+</section>
+
+<section id="hai-nguong">
+  <div class="prose">
+    <h2>Hai ngưỡng và hiện tượng trễ</h2>
+    <p>Hai con số quyết định hình dạng của mọi thứ:</p>
+  </div>
+  <dl class="defs">
+    <dt>λ<sub>TC</sub> = ρ + κ<span class="tag">ngưỡng xâm nhập</span></dt>
+    <dd>Dưới mức này, trạng thái tự chủ hoàn toàn còn ổn định: vài người dùng lẻ tẻ rồi cũng bỏ. Vượt qua, nó mất ổn định. Về mặt toán học đây là một phân nhánh transcritical.</dd>
+    <dt>λ<sub>SN</sub> = 2√(κρ)<span class="tag">ngưỡng hồi phục</span></dt>
+    <dd>Trên mức này, trạng thái ghép nối (nhiều người dùng, một phần lệ thuộc) tồn tại và ổn định. Dưới mức này nó biến mất, cùng với nhánh không ổn định đi kèm. Đây là một phân nhánh saddle-node.</dd>
+  </dl>
+  <div class="prose">
+    <p>Khi <i>κ</i> &gt; <i>ρ</i> thì <i>λ</i><sub>SN</sub> &lt; <i>λ</i><sub>TC</sub>, và giữa hai ngưỡng cả hai trạng thái cùng ổn định. Độ rộng của vùng này là (√<i>κ</i> − √<i>ρ</i>)².</p>
+    <p>Hệ quả: tăng <i>λ</i> từ thấp lên, quần thể giữ nguyên tự chủ cho tới <i>λ</i><sub>TC</sub> rồi lật. Giảm <i>λ</i> từ cao xuống, nó bám trạng thái ghép nối cho tới <i>λ</i><sub>SN</sub> mới lật lại. Đường đi lên và đường đi xuống khác nhau. Đó là hiện tượng trễ (hysteresis), giống bộ điều nhiệt bật lò sưởi ở 19 °C nhưng chỉ tắt ở 21 °C.</p>
+  </div>
+  <figure class="fig">
+    <div class="controls">
+      <div class="ctl" data-param="lambda"></div>
+      <div class="ctl" data-param="rho"></div>
+      <div class="ctl" data-param="kappa"></div>
+    </div>
+    <div class="btns">
+      <button class="btn" type="button" id="b-sweep">Quét λ lên rồi xuống</button>
+      <button class="btn" type="button" id="b-yU" aria-pressed="true">Trục dọc: tỷ lệ tự chủ U*</button>
+      <button class="btn" type="button" id="b-yG" aria-pressed="false">Trục dọc: năng lực ⟨Γ⟩*</button>
+    </div>
+    <div class="cv r-bif"><canvas id="cv-bif" role="img" aria-label="Sơ đồ phân nhánh theo λ"></canvas></div>
+    <div class="readout">
+      <div>λ<sub>SN</sub> (hồi phục)<b data-out="sn"></b></div>
+      <div>λ<sub>TC</sub> (xâm nhập)<b data-out="tc"></b></div>
+      <div>Độ rộng vùng trễ<b data-out="width"></b></div>
+      <div>λ hiện tại<b data-out="lam"></b></div>
+    </div>
+    <p class="status" data-reg-out><span data-out="regime"></span></p>
+    <figcaption><b>Hình 3.</b> Nét liền: cân bằng ổn định. Nét đứt xám: không ổn định. Dải vàng: vùng hai trạng thái. Bấm “Quét λ” để thả một quần thể đi qua sơ đồ: chấm đậm khi λ tăng, chấm xanh lục khi λ giảm. Thử kéo κ xuống dưới ρ: dải vàng biến mất và quần thể chuyển dần chứ không lật.</figcaption>
+  </figure>
+</section>
+
+<section id="vien-bi">
+  <div class="prose">
+    <h2>Viên bi trong thung lũng</h2>
+    <p>Bài báo đưa ra một hình ảnh trực quan. Giả sử tỷ lệ giữa <i>C</i> và <i>D</i> ổn định rất nhanh, khi đó <i>C</i> = <i>s</i>(1 − <i>U</i>) với <i>s</i> = <i>σ</i>/(<i>μ</i> + <i>σ</i>), và cả hệ thu về một phương trình một chiều:</p>
+  </div>
+  <div class="eq">d<i>U</i>/d<i>t</i> = <i>s</i>(1 − <i>U</i>)(<i>ρ</i> − <i>λU</i> + <i>κU</i>²) = −d<i>V</i>/d<i>U</i></div>
+  <div class="prose">
+    <p>Phương trình một chiều nào cũng viết được như một viên bi lăn xuống dốc trên địa hình <i>V</i>. Đáy thung lũng là trạng thái ổn định, đỉnh đồi là ngưỡng không ổn định ngăn cách hai lưu vực.</p>
+  </div>
+  <figure class="fig">
+    <div class="controls"><div class="ctl" data-param="lambda"></div></div>
+    <div class="btns">
+      <button class="btn" type="button" id="m-auto">Đặt bi ở trạng thái tự chủ</button>
+      <button class="btn" type="button" id="m-dep">Đặt bi ở trạng thái lệ thuộc</button>
+      <button class="btn" type="button" id="m-kick">Hích bi một cái</button>
+    </div>
+    <div class="cv r-pot"><canvas id="cv-pot" role="img" aria-label="Địa hình thế năng và viên bi"></canvas></div>
+    <p class="status" id="pot-status"></p>
+    <figcaption><b>Hình 4.</b> Dải trên cùng là bản đồ λ: chàm chỉ có tự chủ, vàng có hai trạng thái, hồng chỉ còn ghép nối. Trục ngang của địa hình là năng lực trung bình ⟨Γ⟩. Bức tường bên phải là U = 1 (không thể tự chủ hơn 100%), nên thung lũng tự chủ là một nửa thung lũng tựa lưng vào tường.</figcaption>
+  </figure>
+  <div class="prose">
+    <p>Tăng <i>λ</i> qua <i>λ</i><sub>SN</sub>: một thung lũng thứ hai xuất hiện ở vùng năng lực thấp. Tới điểm Maxwell <i>λ</i><sub>M</sub> (≈ <b data-out="maxwell"></b> với tham số hiện tại), hai thung lũng sâu bằng nhau; vượt qua đó, thung lũng lệ thuộc sâu hơn. Nhưng viên bi vẫn nằm yên ở thung lũng cũ cho tới khi thung lũng đó biến mất tại <i>λ</i><sub>TC</sub>, rồi lăn ào xuống. Đây là cú “runaway”: dùng nhiều hơn dẫn tới giao việc nhiều hơn, và giao việc nhiều hơn lại củng cố việc dùng.</p>
+    <p>Nút “Hích bi” mô phỏng một cú sốc, chẳng hạn một đợt triển khai AI đồng loạt. Trong vùng hai trạng thái, một cú hích đủ mạnh đẩy được bi qua đỉnh đồi trước cả khi chạm ngưỡng. Lưu vực càng nông thì cú hích cần càng nhỏ.</p>
+  </div>
+</section>
+
+<section id="ban-do-pha">
+  <div class="prose">
+    <h2>Bản đồ pha: khi nào có cú lật</h2>
+    <p>Mỗi điểm trên mặt phẳng (<i>κ</i>, <i>λ</i>) là một xã hội giả định. Bấm hoặc kéo trên hình để chọn điểm; thanh <i>ρ</i> dịch chuyển cả bản đồ.</p>
+  </div>
+  <figure class="fig">
+    <div class="controls">
+      <div class="ctl" data-param="rho"></div>
+      <div class="ctl" data-param="kappa"></div>
+      <div class="ctl" data-param="lambda"></div>
+    </div>
+    <div class="cv r-phase"><canvas id="cv-phase" role="img" aria-label="Bản đồ pha theo κ và λ, bấm để chọn điểm"></canvas></div>
+    <p class="status" data-reg-out><span data-out="regime"></span></p>
+    <figcaption><b>Hình 5.</b> Chàm: chỉ tự chủ ổn định. Vàng: hai trạng thái. Hồng: chỉ trạng thái ghép nối ổn định. Đường liền là λ = ρ + κ, đường đứt là λ = 2√(κρ). Vùng vàng chỉ tồn tại bên phải đường chấm κ = ρ.</figcaption>
+  </figure>
+  <div class="prose">
+    <p>Hai điều đáng để ý. Thứ nhất, <i>κ</i> là con dao hai lưỡi: tăng <i>κ</i> đẩy ngưỡng xâm nhập lên cao (khó bị lật hơn) nhưng cũng nới rộng vùng vàng (đã lật thì khó về hơn). Thứ hai, khi <i>ρ</i> ≥ <i>κ</i> thì vùng vàng biến mất hẳn và quá trình chuyển trở nên liên tục, có thể quan sát và điều chỉnh dần.</p>
+  </div>
+</section>
+
+<section id="nang-luc">
+  <div class="prose">
+    <h2>Cái giá tính bằng năng lực</h2>
+    <p>Để đo hậu quả, bài báo gán cho mỗi trạng thái một mức năng lực nhận thức <i>Γ</i>: khả năng còn lại khi bỏ công cụ đi, không phải năng lực của cả hệ người cộng máy. Mặc định <i>Γ</i><sub>u</sub> = 1, <i>Γ</i><sub>c</sub> = 0,5, <i>Γ</i><sub>d</sub> = 0,1. Các tác giả nói rõ đây là giả định minh họa cho kiểu dùng thay thế; với kiểu dùng giàn giáo, năng lực có thể giữ nguyên hoặc thậm chí tăng.</p>
+  </div>
+  <div class="eq">⟨<i>Γ</i>⟩* = <i>g</i> + (1 − <i>g</i>)<i>U</i>*,&nbsp;&nbsp; <i>g</i> = (<i>Γ</i><sub>c</sub><i>σ</i> + <i>Γ</i><sub>d</sub><i>μ</i>)/(<i>μ</i> + <i>σ</i>)<div class="small">g là năng lực trung bình của nhóm đang dùng LLM (C và D gộp lại) khi đã cân bằng.</div></div>
+  <figure class="fig">
+    <div class="controls">
+      <div class="ctl" data-param="gc"></div>
+      <div class="ctl" data-param="gd"></div>
+      <div class="ctl" data-param="mu"></div>
+      <div class="ctl" data-param="sigma"></div>
+    </div>
+    <div class="bars">
+      <div class="bar"><span>Trước khi lật</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">1,000</span></div>
+      <div class="bar"><span>Ngay sau khi lật tại λ<sub>TC</sub></span><span class="track"><span class="fill" id="bar-after"></span></span><span class="val" data-out="gAfter"></span></div>
+      <div class="bar"><span>Ngay trước khi hồi tại λ<sub>SN</sub></span><span class="track"><span class="fill" id="bar-rec"></span></span><span class="val" data-out="gRec"></span></div>
+      <div class="bar"><span>Năng lực nền nhóm đang dùng g</span><span class="track"><span class="fill" id="bar-g"></span></span><span class="val" data-out="g"></span></div>
+      <div class="bar"><span>Trong nhóm đang dùng: C | D</span><span class="track"><span class="fill c" id="bar-c"></span><span class="fill d" id="bar-d"></span></span><span class="val" data-out="dshare"></span></div>
+    </div>
+    <p class="status" id="g-status"></p>
+    <figcaption><b>Hình 6.</b> Với tham số của bài báo, năng lực trung bình rơi từ 1 xuống khoảng 0,425 khi λ vượt 0,50, và trên đường về vẫn mắc kẹt ở khoảng 0,617 cho tới khi λ xuống 0,40. Thanh cuối cho biết tỷ lệ lệ thuộc D*/(C* + D*) = μ/(μ + σ).</figcaption>
+  </figure>
+  <div class="prose">
+    <p>Để ý rằng <i>μ</i> và <i>σ</i> không có mặt trong công thức của hai ngưỡng. Chúng không quyết định <em>khi nào</em> quần thể lật, nhưng quyết định cú rơi sâu bao nhiêu.</p>
+  </div>
+</section>
+
+<section id="can-thiep">
+  <div class="prose">
+    <h2>Miễn dịch nhận thức</h2>
+    <p>“Miễn dịch” ở đây không có nghĩa là tránh xa LLM, mà là giữ cho việc dùng không trượt sang thay thế. Mô hình chỉ ra hai tầng can thiệp. Tầng thứ nhất (<i>λ</i>, <i>ρ</i>, <i>κ</i>) thay đổi hình dạng các ngưỡng. Tầng thứ hai (<i>μ</i>, <i>σ</i>) không đụng tới ngưỡng nhưng quyết định bao nhiêu người dùng trở thành lệ thuộc.</p>
+    <p>Và một bất đối xứng then chốt: phòng ngừa chỉ cần giữ <i>λ</i> &lt; <i>λ</i><sub>TC</sub>, còn đảo ngược thì cần <i>λ</i> &lt; <i>λ</i><sub>SN</sub>, thấp hơn hẳn. Phòng dễ hơn chữa.</p>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Đòn bẩy</th><th>Tham số</th><th>Hiệu ứng trong mô hình</th><th>Ví dụ thực tế</th><th>Thử</th></tr></thead>
+      <tbody>
+        <tr><td>Hạn chế lan truyền tự động</td><td class="p">λ ↓</td><td>Ngăn xâm nhập nếu λ &lt; λ<sub>TC</sub>; đã lật thì phải xuống dưới λ<sub>SN</sub>.</td><td>Không bật AI mặc định ở mọi ô nhập liệu; trường học không bắt buộc dùng AI cho mọi bài.</td><td><button class="btn" type="button" data-lever="lambda" data-d="-0.1">λ − 0,1</button></td></tr>
+        <tr><td>Giữ đường quay về</td><td class="p">ρ ↑</td><td>Nâng cả hai ngưỡng, thu hẹp vùng trễ; khi ρ ≥ κ thì hết cú lật.</td><td>Bài tập không AI, những ngày làm việc không AI, duy trì kỹ năng cũ.</td><td><button class="btn" type="button" data-lever="rho" data-d="0.1">ρ + 0,1</button></td></tr>
+        <tr><td>Củng cố tự chủ tập thể</td><td class="p">κ ↑</td><td>Khó bị xâm nhập hơn, nhưng vùng trễ rộng hơn nếu κ &gt; ρ.</td><td>Chuẩn mực nhóm coi trọng tự suy luận; review chéo không dùng AI.</td><td><button class="btn" type="button" data-lever="kappa" data-d="0.15">κ + 0,15</button></td></tr>
+        <tr><td>Chặn đường sang lệ thuộc</td><td class="p">μ ↓</td><td>Không đổi ngưỡng; giảm tỷ lệ D, tăng ⟨Γ⟩.</td><td>Bắt buộc kiểm chứng; nghĩ trước rồi mới hỏi AI.</td><td><button class="btn" type="button" data-lever="mu" data-d="-0.1">μ − 0,1</button></td></tr>
+        <tr><td>Mở đường hồi phục</td><td class="p">σ ↑</td><td>Không đổi ngưỡng; kéo người D về C, tăng ⟨Γ⟩.</td><td>Luyện tập định kỳ không có công cụ; với lệ thuộc nặng, hỗ trợ điều chỉnh hành vi.</td><td><button class="btn" type="button" data-lever="sigma" data-d="0.1">σ + 0,1</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <figure class="fig">
+    <div class="btns"><button class="btn" type="button" id="b-default">Về tham số mặc định của bài báo</button></div>
+    <div class="split">
+      <div>
+        <div class="readout" style="margin-top:0">
+          <div>λ hiện tại<b data-out="lam"></b></div>
+          <div>λ<sub>SN</sub><b data-out="sn"></b></div>
+          <div>λ<sub>TC</sub><b data-out="tc"></b></div>
+          <div>Độ rộng vùng trễ<b data-out="width"></b></div>
+          <div>Tỷ lệ lệ thuộc trong nhóm dùng<b data-out="dshare"></b></div>
+          <div>Năng lực rơi khi lật<b data-out="loss"></b></div>
+        </div>
+        <p class="status" data-reg-out><span data-out="regime"></span></p>
+      </div>
+      <div class="cv r-mini"><canvas id="cv-mini" role="img" aria-label="Sơ đồ phân nhánh thu nhỏ"></canvas></div>
+    </div>
+    <figcaption><b>Hình 7.</b> Bấm các nút “Thử” trong bảng nhiều lần và quan sát dải vàng trên sơ đồ thu nhỏ. Mọi hình khác trên trang cũng cập nhật theo.</figcaption>
+  </figure>
+  <div class="prose">
+    <p>Thông điệp của mô hình: đừng chỉ tối đa hóa sức kéo tập thể <i>κ</i>. Hãy kết hợp nó với đường quay về đủ mạnh (<i>ρ</i> cao), để sự bảo vệ không phải trả giá bằng một vùng trễ rộng.</p>
+    <h3>Ghi chú khi áp dụng cho một cá nhân</h3>
+    <p>Mô hình nói về quần thể, nên áp nó cho một người chỉ là phép suy diễn. Dù vậy, các tham số gợi ra những thói quen cụ thể. Giảm <i>μ</i>: tự phác thảo hoặc thử giải trước khi hỏi; bài báo trích một thí nghiệm ngẫu nhiên trong đó quy trình “nghĩ trước, ChatGPT sau” cho khả năng sáng tạo độc lập tốt hơn dùng tự do. Tăng <i>σ</i>: định kỳ tự làm trọn một việc không có trợ giúp, rồi mới so với bản của AI. Tăng <i>ρ</i>: giữ vài vùng công việc mà bạn chủ động không dùng AI. Phép thử cuối cùng vẫn là câu hỏi cũ: bỏ công cụ đi thì còn lại gì?</p>
+  </div>
+</section>
+
+<section id="phe-phan">
+  <div class="prose"><h2>Đọc với con mắt phê phán</h2></div>
+  <dl class="crit">
+    <dt>Không có dữ liệu</dt>
+    <dd>Đây là bài lý thuyết. Các tham số (ρ = 0,1; κ = 0,4; μ = 0,2; σ = 0,1) là giá trị minh họa, không ước lượng từ thực tế. Ta chưa biết xã hội thật đang ở đâu trên bản đồ pha, hay κ có thật sự lớn hơn ρ.</dd>
+    <dt>Mọi thứ dựa vào κU²C</dt>
+    <dd>Hai trạng thái ổn định, hiện tượng trễ và cú lật đều đến từ số hạng này. Đó là một giả định có tiền lệ trong nghiên cứu về chuẩn mực xã hội, nhưng chưa được đo cho trường hợp LLM.</dd>
+    <dt>Γ là giả định</dt>
+    <dd>Thứ tự Γ<sub>u</sub> &gt; Γ<sub>c</sub> &gt; Γ<sub>d</sub> là lựa chọn minh họa. Cấu trúc phân nhánh không phụ thuộc vào Γ, nhưng dấu của hậu quả thì có.</dd>
+    <dt>Trường trung bình</dt>
+    <dd>Mỗi người “gặp” toàn bộ quần thể như nhau. Mạng xã hội thật có cụm, có hub, và những cấu trúc đó có thể dịch chuyển ngưỡng.</dd>
+    <dt>Ba ngăn rời rạc</dt>
+    <dd>Trên thực tế, tự chủ là một dải liên tục, và một người có thể tự chủ ở việc này nhưng lệ thuộc ở việc khác.</dd>
+    <dt>λ là tham số ngoài</dt>
+    <dd>Ngoài đời, λ còn bị đẩy bởi kinh tế và bởi chính các mô hình AI ngày càng giỏi hơn, tạo vòng phản hồi mà mô hình chưa có.</dd>
+    <dt>Không nói về tốc độ</dt>
+    <dd>Mô hình cho biết cấu trúc các trạng thái cân bằng, không cho biết cú lật diễn ra trong vài tháng hay vài thập kỷ.</dd>
+    <dt>Không tính lợi ích</dt>
+    <dd>Γ đo năng lực khi không có công cụ. Năng lực của cả hệ người cộng máy có thể tăng mạnh cùng lúc, và mô hình không cân hai thứ này với nhau.</dd>
+  </dl>
+  <div class="prose"><p>Cách đọc hợp lý: đây là một khung tư duy cho thấy điều gì <em>có thể</em> xảy ra dưới những giả định hợp lý, không phải một dự báo. Chính các tác giả cũng nhấn mạnh điểm này.</p></div>
+</section>
+
+<section id="thuat-ngu">
+  <div class="prose"><h2>Thuật ngữ</h2></div>
+  <dl class="crit">
+    <dt>Mô hình ngăn</dt><dd>Compartment model: chia dân số thành các nhóm (ngăn) và mô tả tốc độ người chuyển giữa các nhóm, như mô hình SIR trong dịch tễ.</dd>
+    <dt>Điểm cân bằng</dt><dd>Trạng thái mà mọi đạo hàm bằng 0: dòng vào mỗi ngăn bằng dòng ra.</dd>
+    <dt>Phân nhánh</dt><dd>Bifurcation: thay đổi định tính về số lượng hoặc độ ổn định của các điểm cân bằng khi một tham số thay đổi dần.</dd>
+    <dt>Transcritical</dt><dd>Hai nhánh cân bằng cắt nhau và đổi độ ổn định cho nhau. Ở đây là lúc trạng thái tự chủ mất ổn định tại λ<sub>TC</sub>.</dd>
+    <dt>Saddle-node</dt><dd>Một cặp cân bằng, một ổn định và một không, cùng xuất hiện hoặc cùng biến mất. Ở đây là λ<sub>SN</sub>.</dd>
+    <dt>Bistability</dt><dd>Hai trạng thái ổn định cùng tồn tại; trạng thái cuối cùng phụ thuộc vào điểm xuất phát.</dd>
+    <dt>Hysteresis</dt><dd>Hiện tượng trễ: trạng thái phụ thuộc vào lịch sử, nên đường đi lên khác đường đi xuống.</dd>
+    <dt>Hiệu ứng Allee</dt><dd>Khi tốc độ tăng trưởng của một nhóm phụ thuộc dương vào chính mật độ của nhóm đó, dẫn tới một ngưỡng tới hạn.</dd>
+    <dt>Điểm Maxwell</dt><dd>Giá trị tham số mà tại đó hai thung lũng của thế năng sâu bằng nhau.</dd>
+    <dt>Trường trung bình</dt><dd>Mean-field: mỗi cá thể chỉ “cảm nhận” tỷ lệ trung bình của cả quần thể, bỏ qua cấu trúc mạng.</dd>
+    <dt>Giảm tải nhận thức</dt><dd>Cognitive offloading: giao một thao tác nhận thức cho công cụ hoặc biểu diễn bên ngoài, như viết ra giấy, dùng máy tính bỏ túi, hay hỏi LLM.</dd>
+  </dl>
+</section>
+
+</main>
+<footer>
+  <p>Nguồn: Solé R., Ruffini G., Castaldo F., Tuccio M., Seoane L. F., De Domenico M., Elena S. F., Krakauer D. C., Levin M. “Large-Language Models as a Cognitive Virus”, <a href="https://arxiv.org/abs/2609.03344" target="_blank" rel="noopener">arXiv:2609.03344</a> (2026). Mô phỏng trong trang dùng tham số minh họa của bài báo; phần mô phỏng cá thể ở đầu trang là phiên bản ngẫu nhiên của cùng hệ phương trình, có thêm một xác suất rất nhỏ tự tiếp xúc với LLM để quần thể không bao giờ “sạch” hoàn toàn.</p>
+</footer>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const DEF = {lambda:0.35, rho:0.10, kappa:0.40, mu:0.20, sigma:0.10, gc:0.5, gd:0.1, U0:0.95, C0:0.04, T:400};
+const P = {...DEF};
+const SPEC = {
+  lambda:{sym:'λ', name:'lan truyền', min:0, max:1.2, step:0.005, d:3},
+  rho:{sym:'ρ', name:'quay lại tự chủ', min:0.01, max:0.6, step:0.01, d:2},
+  kappa:{sym:'κ', name:'sức kéo tập thể', min:0.01, max:1, step:0.01, d:2},
+  mu:{sym:'μ', name:'trượt sang lệ thuộc', min:0.01, max:0.6, step:0.01, d:2},
+  sigma:{sym:'σ', name:'hồi phục', min:0.01, max:0.6, step:0.01, d:2},
+  gc:{sym:'Γ<sub>c</sub>', name:'năng lực nhóm C', min:0, max:1, step:0.01, d:2},
+  gd:{sym:'Γ<sub>d</sub>', name:'năng lực nhóm D', min:0, max:1, step:0.01, d:2},
+  U0:{sym:'U₀', name:'tự chủ ban đầu', min:0, max:1, step:0.01, d:2},
+  C0:{sym:'C₀', name:'đang dùng ban đầu', min:0, max:1, step:0.01, d:2},
+  T:{sym:'t', name:'thời gian mô phỏng', min:50, max:1200, step:10, d:0}
+};
+const fmt = (v, d=2) => (Number.isFinite(v) ? v.toFixed(d) : '–').replace('.', ',');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- colors ---------- */
+const COL = {};
+function readColors(){
+  const cs = getComputedStyle(document.documentElement);
+  ['bg','paper','ink','muted','line','U','C','D','G','U-t','C-t','D-t'].forEach(k => COL[k] = cs.getPropertyValue('--'+k).trim());
+}
+readColors();
+
+/* ---------- model ---------- */
+const thr = (p=P) => ({sn:2*Math.sqrt(p.kappa*p.rho), tc:p.rho+p.kappa, bi:p.kappa>p.rho});
+function roots(lam, p=P){
+  const d = lam*lam - 4*p.kappa*p.rho; if (d < 0) return null;
+  const s = Math.sqrt(d); return [(lam-s)/(2*p.kappa), (lam+s)/(2*p.kappa)];
+}
+const gEff = (p=P) => (p.gc*p.sigma + p.gd*p.mu)/(p.mu + p.sigma);
+function f2(lam, U, C, p){
+  const D = 1-U-C, k = p.kappa*U*U*C;
+  return [-lam*U*C + p.rho*C + k, lam*U*C - (p.mu+p.rho)*C + p.sigma*D - k];
+}
+function rk4(lam, U, C, dt, p=P){
+  const a=f2(lam,U,C,p), b=f2(lam,U+dt/2*a[0],C+dt/2*a[1],p), c=f2(lam,U+dt/2*b[0],C+dt/2*b[1],p), d=f2(lam,U+dt*c[0],C+dt*c[1],p);
+  let nU = U + dt/6*(a[0]+2*b[0]+2*c[0]+d[0]);
+  let nC = C + dt/6*(a[1]+2*b[1]+2*c[1]+d[1]);
+  nU = Math.min(1, Math.max(0, nU)); nC = Math.min(1-nU, Math.max(0, nC));
+  return [nU, nC];
+}
+function regime(lam=P.lambda, p=P){
+  const t = thr(p);
+  if (t.bi) return lam < t.sn ? 'auto' : lam < t.tc ? 'bi' : 'off';
+  return lam < t.tc ? 'auto' : 'off';
+}
+const REG_TXT = {
+  auto:'Chỉ trạng thái tự chủ là ổn định: người dùng lẻ tẻ rồi cũng bỏ.',
+  bi:'Vùng hai trạng thái: kết cục phụ thuộc điểm xuất phát.',
+  off:'Trạng thái tự chủ mất ổn định: quần thể chuyển hẳn sang dùng và lệ thuộc.'
+};
+function sOf(p=P){ return p.sigma/(p.mu+p.sigma); }
+function V(U, lam, p=P){
+  const s = sOf(p);
+  return -s*(p.rho*U - (lam+p.rho)*U*U/2 + (p.kappa+lam)*U*U*U/3 - p.kappa*U*U*U*U/4);
+}
+function maxwell(p=P){
+  const t = thr(p); if (!t.bi) return null;
+  const dv = l => { const r = roots(l,p); return V(r[0],l,p) - V(1,l,p); };
+  let a = t.sn+1e-9, b = t.tc-1e-9, fa = dv(a), fb = dv(b);
+  if (!(fa*fb <= 0)) return null;
+  for (let i=0;i<60;i++){ const c=(a+b)/2, fc=dv(c); if (fa*fc<=0){b=c;fb=fc;} else {a=c;fa=fc;} }
+  return (a+b)/2;
+}
+
+/* ---------- controls ---------- */
+$$('.ctl[data-param]').forEach((el, i) => {
+  const k = el.dataset.param, s = SPEC[k], id = `c-${k}-${i}`;
+  el.innerHTML = `<label for="${id}"><span class="sym">${s.sym}</span><span class="nm">${s.name}</span><output>${fmt(P[k], s.d)}</output></label><input id="${id}" type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${P[k]}">`;
+  el.querySelector('input').addEventListener('input', e => setParam(k, +e.target.value));
+});
+function syncCtl(k){
+  $$(`.ctl[data-param="${k}"]`).forEach(el => {
+    const inp = el.querySelector('input');
+    if (+inp.value !== P[k]) inp.value = P[k];
+    el.querySelector('output').textContent = fmt(P[k], SPEC[k].d);
+  });
+}
+const STRUCT = ['rho','kappa','mu','sigma'];
+function setParam(k, v){
+  P[k] = v;
+  if (k === 'U0' && P.U0 + P.C0 > 1){ P.C0 = Math.round((1-P.U0)*100)/100; syncCtl('C0'); }
+  if (k === 'C0' && P.U0 + P.C0 > 1){ P.U0 = Math.round((1-P.C0)*100)/100; syncCtl('U0'); }
+  syncCtl(k);
+  if (STRUCT.includes(k)) cancelSweep();
+  schedule();
+}
+function setMany(o){
+  Object.entries(o).forEach(([k,v]) => { const s=SPEC[k]; P[k] = Math.min(s.max, Math.max(s.min, Math.round(v/s.step)*s.step)); P[k] = +P[k].toFixed(4); syncCtl(k); });
+  cancelSweep(); schedule();
+}
+
+/* ---------- canvas helpers ---------- */
+function prep(cv){
+  const w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+  const W = Math.max(1, Math.round(w*dpr)), H = Math.max(1, Math.round(h*dpr));
+  if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+  return {ctx, w, h};
+}
+function niceStep(range, target=5){
+  const raw = range/target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw/p;
+  return (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10)*p;
+}
+function mapper(w, h, m, xr, yr){
+  const pw = w-m.l-m.r, ph = h-m.t-m.b;
+  return {
+    X: v => m.l + (v-xr[0])/(xr[1]-xr[0])*pw,
+    Y: v => h-m.b - (v-yr[0])/(yr[1]-yr[0])*ph,
+    ix: px => xr[0] + (px-m.l)/pw*(xr[1]-xr[0]),
+    iy: py => yr[0] + (h-m.b-py)/ph*(yr[1]-yr[0]),
+    m, w, h, xr, yr
+  };
+}
+const FONT = (sz=11, wt=400) => `${wt} ${sz}px "Be Vietnam Pro", system-ui, sans-serif`;
+function grid(ctx, M, opt={}){
+  const {m, w, h, xr, yr} = M;
+  ctx.save(); ctx.font = FONT(11); ctx.lineWidth = 1;
+  const xs = opt.xstep || niceStep(xr[1]-xr[0], w < 420 ? 4 : 6), ys = opt.ystep || niceStep(yr[1]-yr[0], 4);
+  const dec = s => s >= 1 ? 0 : s >= 0.1 ? 1 : 2;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let v = Math.ceil(xr[0]/xs-1e-9)*xs; v <= xr[1]+1e-9; v += xs){
+    const x = M.X(v);
+    ctx.strokeStyle = COL.line; ctx.beginPath(); ctx.moveTo(x, m.t); ctx.lineTo(x, h-m.b); ctx.stroke();
+    ctx.fillStyle = COL.muted; ctx.fillText(fmt(v, dec(xs)), x, h-m.b+5);
+  }
+  if (!opt.noY){
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let v = Math.ceil(yr[0]/ys-1e-9)*ys; v <= yr[1]+1e-9; v += ys){
+      const y = M.Y(v);
+      ctx.strokeStyle = COL.line; ctx.beginPath(); ctx.moveTo(m.l, y); ctx.lineTo(w-m.r, y); ctx.stroke();
+      ctx.fillStyle = COL.muted; ctx.fillText(fmt(v, dec(ys)), m.l-6, y);
+    }
+  }
+  ctx.fillStyle = COL.ink; ctx.font = FONT(11.5, 500);
+  if (opt.xl){ ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.xl, w-m.r, h-1); }
+  if (opt.yl){ ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(opt.yl, Math.max(2, m.l-30), m.t-7); }
+  ctx.restore();
+}
+function poly(ctx, pts, color, width=2, dash=null, alpha=1){
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.globalAlpha = alpha; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); let on = false;
+  for (const p of pts){ if (!p){ on = false; continue; } if (!on){ ctx.moveTo(p[0],p[1]); on = true; } else ctx.lineTo(p[0],p[1]); }
+  ctx.stroke(); ctx.restore();
+}
+
+/* ---------- time series ---------- */
+function drawTS(){
+  const cv = $('#cv-ts'); const {ctx, w, h} = prep(cv);
+  const T = P.T, dt = 0.2, n = Math.round(T/dt), stride = Math.max(1, Math.floor(n/700));
+  let U = P.U0, C = P.C0; const pts = [[0,U,C]];
+  for (let i=1;i<=n;i++){ [U,C] = rk4(P.lambda, U, C, dt); if (i%stride===0 || i===n) pts.push([i*dt,U,C]); }
+  const M = mapper(w, h, {l:36, r:12, t:26, b:32}, [0,T], [0,1]);
+  grid(ctx, M, {xl:'thời gian', yl:'tỷ lệ'});
+  const G = (u,c) => u + P.gc*c + P.gd*(1-u-c);
+  poly(ctx, pts.map(p => [M.X(p[0]), M.Y(p[1])]), COL.U, 2.6);
+  poly(ctx, pts.map(p => [M.X(p[0]), M.Y(p[2])]), COL.C, 2.6);
+  poly(ctx, pts.map(p => [M.X(p[0]), M.Y(1-p[1]-p[2])]), COL.D, 2.6);
+  poly(ctx, pts.map(p => [M.X(p[0]), M.Y(G(p[1],p[2]))]), COL.G, 2, [6,5]);
+  const last = pts[pts.length-1];
+  $('#ts-u').textContent = fmt(last[1]); $('#ts-c').textContent = fmt(last[2]);
+  $('#ts-d').textContent = fmt(1-last[1]-last[2]); $('#ts-g').textContent = fmt(G(last[1],last[2]));
+}
+
+/* ---------- bifurcation ---------- */
+const BIF = {yMode:'U'};
+const SW = {run:false, up:[], down:[], phase:0, lam:0, U:1, C:0, lo:0, hi:0, step:0};
+function lamMax(){ return Math.max(1, 1.25*thr().tc); }
+function drawBif(cv, opt={}){
+  const {ctx, w, h} = prep(cv);
+  const t = thr(), Lmax = lamMax(), g = gEff(), yG = opt.yMode === 'G';
+  const ym = U => yG ? g + (1-g)*U : U;
+  const M = mapper(w, h, {l:36, r:12, t: opt.mini ? 12 : 30, b:32}, [0,Lmax], [0,1]);
+  const {m} = M;
+  if (t.bi){
+    ctx.fillStyle = COL['C-t']; ctx.fillRect(M.X(t.sn), m.t, M.X(Math.min(t.tc,Lmax))-M.X(t.sn), h-m.t-m.b);
+  }
+  grid(ctx, M, {xl:'λ', yl: opt.mini ? '' : (yG ? 'năng lực trung bình ⟨Γ⟩*' : 'tỷ lệ tự chủ U*')});
+  // autonomous branch
+  const tcx = Math.min(t.tc, Lmax);
+  poly(ctx, [[M.X(0), M.Y(ym(1))], [M.X(tcx), M.Y(ym(1))]], COL.U, 3);
+  if (t.tc < Lmax) poly(ctx, [[M.X(t.tc), M.Y(ym(1))], [M.X(Lmax), M.Y(ym(1))]], COL.muted, 2, [5,5]);
+  // coupled branches
+  const st = [], un = [], N = 260;
+  for (let i=0;i<=N;i++){
+    const lam = t.sn + (Lmax - t.sn)*i/N; const r = roots(lam); if (!r){ st.push(null); un.push(null); continue; }
+    st.push(r[0] >= 0 && r[0] <= 1 ? [M.X(lam), M.Y(ym(r[0]))] : null);
+    un.push(r[1] >= 0 && r[1] <= 1 ? [M.X(lam), M.Y(ym(r[1]))] : null);
+  }
+  poly(ctx, un, COL.muted, 2, [5,5]);
+  poly(ctx, st, COL.D, 3);
+  // thresholds labels
+  ctx.save(); ctx.font = FONT(11, 500); ctx.textBaseline = 'bottom'; ctx.fillStyle = COL.ink;
+  if (!opt.mini){
+    if (t.bi){
+      ctx.textAlign = 'center';
+      const xs = M.X(t.sn), xt = M.X(Math.min(t.tc,Lmax));
+      ctx.textBaseline = 'top'; ctx.fillStyle = COL.C;
+      if (xt - xs > 80){ ctx.fillText('hai trạng thái', (xs+xt)/2, m.t+6); }
+      else { ctx.textAlign = 'left'; ctx.fillText('hai trạng thái', xt+5, m.t+6); }
+    }
+  }
+  ctx.restore();
+  // current lambda
+  const xl = M.X(Math.min(P.lambda, Lmax));
+  ctx.save(); ctx.strokeStyle = COL.ink; ctx.globalAlpha = .55; ctx.setLineDash([2,4]); ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(xl, m.t); ctx.lineTo(xl, h-m.b); ctx.stroke(); ctx.restore();
+  // current equilibria markers
+  const eqs = [];
+  if (regime() !== 'off') eqs.push(1);
+  const r = roots(P.lambda); if (r && r[0] >= 0 && r[0] <= 1 && P.lambda >= t.sn) eqs.push(r[0]);
+  eqs.forEach(U => { ctx.beginPath(); ctx.arc(xl, M.Y(ym(U)), opt.mini ? 4 : 5, 0, 7); ctx.fillStyle = COL.paper; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = COL.ink; ctx.stroke(); });
+  // sweep trail
+  if (opt.sweep){
+    const dotT = (arr, color) => { ctx.fillStyle = color; arr.forEach(p => { ctx.beginPath(); ctx.arc(M.X(p[0]), M.Y(ym(p[1])), 2.6, 0, 7); ctx.fill(); }); };
+    dotT(SW.up, COL.ink); dotT(SW.down, COL.G);
+    if (SW.run){
+      ctx.beginPath(); ctx.arc(M.X(SW.lam), M.Y(ym(SW.U)), 7, 0, 7);
+      ctx.fillStyle = SW.phase === 0 ? COL.ink : COL.G; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = COL.paper; ctx.stroke();
+    }
+  }
+}
+function cancelSweep(){ SW.run = false; SW.up = []; SW.down = []; $('#b-sweep').textContent = 'Quét λ lên rồi xuống'; }
+function startSweep(){
+  const t = thr(), Lmax = lamMax();
+  SW.lo = Math.max(0.02, Math.min(0.6*t.sn, t.tc-0.25));
+  SW.hi = Math.min(Lmax*0.97, t.tc+0.25);
+  SW.step = (SW.hi - SW.lo)/110; SW.lam = SW.lo; SW.phase = 0; SW.U = 0.999; SW.C = 0.001; SW.up = []; SW.down = [];
+  SW.run = true; $('#b-sweep').textContent = 'Đang quét…';
+  if (reduceMotion){ while (SW.run) sweepStep(); drawBif($('#cv-bif'), {yMode:BIF.yMode, sweep:true}); }
+}
+function sweepStep(){
+  let U = SW.U, C = SW.C; const dt = 0.25;
+  for (let i=0;i<600;i++){ [U,C] = rk4(SW.lam, U, C, dt); if (C < 1e-4){ C = 1e-4; if (U > 1-C) U = 1-C; } }
+  SW.U = U; SW.C = C;
+  (SW.phase === 0 ? SW.up : SW.down).push([SW.lam, U]);
+  if (SW.phase === 0){ SW.lam += SW.step; if (SW.lam > SW.hi){ SW.phase = 1; SW.lam = SW.hi; } }
+  else { SW.lam -= SW.step; if (SW.lam < SW.lo){ SW.run = false; $('#b-sweep').textContent = 'Quét lại'; } }
+}
+$('#b-sweep').addEventListener('click', () => { if (SW.run) return; startSweep(); });
+function setY(mode){ BIF.yMode = mode; $('#b-yU').setAttribute('aria-pressed', mode==='U'); $('#b-yG').setAttribute('aria-pressed', mode==='G'); schedule(); }
+$('#b-yU').addEventListener('click', () => setY('U'));
+$('#b-yG').addEventListener('click', () => setY('G'));
+
+/* ---------- potential ---------- */
+const PT = {U:0.999, vis:false};
+const LSTRIP = 1.2;
+function drawPot(){
+  const cv = $('#cv-pot'); const {ctx, w, h} = prep(cv);
+  const lam = P.lambda, t = thr(), g = gEff(), lm = maxwell();
+  // lambda strip
+  const SM = mapper(w, 40, {l:36, r:12, t:0, b:0}, [0,LSTRIP], [0,1]);
+  const y0 = 16, bh = 8;
+  const seg = (a, b, c) => { a = Math.max(0,a); b = Math.min(LSTRIP,b); if (b <= a) return; ctx.fillStyle = c; ctx.fillRect(SM.X(a), y0, SM.X(b)-SM.X(a), bh); };
+  const opaque = c => c.replace(/rgba\(([^)]+),[^,)]+\)/, 'rgba($1,0.55)');
+  if (t.bi){ seg(0, t.sn, opaque(COL['U-t'])); seg(t.sn, t.tc, opaque(COL['C-t'])); seg(t.tc, LSTRIP, opaque(COL['D-t'])); }
+  else { seg(0, t.tc, opaque(COL['U-t'])); seg(t.tc, LSTRIP, opaque(COL['D-t'])); }
+  ctx.font = FONT(10.5, 500); ctx.fillStyle = COL.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  let lastX = -99, row = 0;
+  const mark = (v, txt) => { if (v == null || v > LSTRIP) return; const x = SM.X(v); row = (x - lastX < 22) ? row + 1 : 0; lastX = x; ctx.fillStyle = COL.muted; ctx.fillRect(x-0.5, y0-3, 1, bh+6 + row*11); ctx.fillText(txt, x, y0+bh+4 + row*11); };
+  if (t.bi){ mark(t.sn, 'SN'); if (lm) mark(lm, 'M'); }
+  mark(t.tc, 'TC');
+  const xl = SM.X(Math.min(lam, LSTRIP));
+  ctx.fillStyle = COL.ink; ctx.beginPath(); ctx.moveTo(xl, y0-1); ctx.lineTo(xl-6, y0-10); ctx.lineTo(xl+6, y0-10); ctx.closePath(); ctx.fill();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('λ', 4, y0-4);
+  // landscape
+  const rr0 = roots(lam), ref = (rr0 && rr0[0] >= 0 && rr0[0] <= 1 && lam >= t.sn) ? rr0[0] : (t.bi ? Math.sqrt(P.rho/P.kappa) : 0.5);
+  const Ulo = Math.max(0, Math.min(ref, 0.6) - 0.3);
+  const N = 240, Us = [], Vs = [];
+  for (let i=0;i<=N;i++){ const U = Ulo + (1-Ulo)*i/N; Us.push(U); Vs.push(V(U, lam)); }
+  let vmin = Math.min(...Vs), vmax = Math.max(...Vs); const span = Math.max(vmax - vmin, 1e-4);
+  vmin -= span*0.12; vmax += span*0.22;
+  const M = mapper(w, h, {l:36, r:12, t:64, b:32}, [g + (1-g)*Ulo, 1], [vmin, vmax]);
+  const gx = U => g + (1-g)*U;
+  grid(ctx, M, {noY:true, xl:'năng lực trung bình ⟨Γ⟩', yl:'thế năng V'});
+  // fill
+  ctx.save(); ctx.beginPath(); ctx.moveTo(M.X(gx(Ulo)), h-M.m.b);
+  Us.forEach((U,i) => ctx.lineTo(M.X(gx(U)), M.Y(Vs[i])));
+  ctx.lineTo(M.X(1), h-M.m.b); ctx.closePath(); ctx.fillStyle = COL['U-t']; ctx.fill(); ctx.restore();
+  poly(ctx, Us.map((U,i) => [M.X(gx(U)), M.Y(Vs[i])]), COL.ink, 2.4);
+  // wall
+  ctx.save(); ctx.strokeStyle = COL.ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(M.X(1), M.m.t); ctx.lineTo(M.X(1), h-M.m.b); ctx.stroke();
+  ctx.font = FONT(10.5); ctx.fillStyle = COL.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('U = 1', M.X(1)-5, M.m.t+2); ctx.restore();
+  // marble
+  const Ud = Math.max(Ulo, PT.U), rad = 9, mx = Math.min(M.X(gx(Ud)), M.X(1) - rad - 2), my = M.Y(V(Ud, lam));
+  ctx.beginPath(); ctx.arc(mx, my - rad, rad, 0, 7);
+  const reg = PT.U > 0.85 ? COL.U : PT.U > 0.5 ? COL.C : COL.D;
+  ctx.fillStyle = reg; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = COL.paper; ctx.stroke();
+  potStatus();
+}
+function potStatus(){
+  const t = thr(), lam = P.lambda, reg = regime(), lm = maxwell();
+  let txt;
+  if (reg === 'auto') txt = 'Một thung lũng duy nhất, ở năng lực cao (tự chủ).';
+  else if (reg === 'off') txt = t.bi ? 'Thung lũng tự chủ đã biến mất; chỉ còn thung lũng năng lực thấp.' : 'Một thung lũng duy nhất; nó trượt dần về năng lực thấp khi λ tăng (không có cú lật vì κ ≤ ρ).';
+  else {
+    const r = roots(lam), inAuto = r && PT.U > r[1], deeperAuto = lm && lam < lm;
+    txt = 'Hai thung lũng, ' + (deeperAuto ? 'thung lũng tự chủ sâu hơn. ' : 'thung lũng lệ thuộc sâu hơn. ')
+      + (inAuto ? (deeperAuto ? 'Bi đang nằm ở thung lũng tự chủ.' : 'Bi vẫn mắc kẹt ở thung lũng tự chủ cho tới khi nó biến mất.')
+                : 'Bi đang ở thung lũng lệ thuộc; phải giảm λ xuống dưới ' + fmt(thr().sn,3) + ' mới thoát.');
+  }
+  const el = $('#pot-status'); if (el.textContent !== txt) el.textContent = txt; el.dataset.reg = reg;
+}
+function stepMarble(){
+  const s = sOf(), lam = P.lambda; let U = PT.U;
+  for (let i=0;i<3;i++){ U += s*(1-U)*(P.rho - lam*U + P.kappa*U*U)*0.6 + (Math.random()-0.5)*0.003; U = Math.min(1, Math.max(0, U)); }
+  PT.U = U;
+}
+$('#m-auto').addEventListener('click', () => { PT.U = 0.999; if (!PT.vis || reduceMotion) drawPot(); });
+$('#m-dep').addEventListener('click', () => { const r = roots(P.lambda); PT.U = (r && r[0] >= 0 && r[0] <= 1) ? r[0] : 0.08; if (!PT.vis || reduceMotion) drawPot(); });
+$('#m-kick').addEventListener('click', () => {
+  const r = roots(P.lambda); const mid = (r && r[1] > 0 && r[1] < 1) ? r[1] : 0.6;
+  PT.U = PT.U > mid ? Math.max(0, PT.U - 0.2) : Math.min(1, PT.U + 0.2);
+  if (!PT.vis || reduceMotion) drawPot();
+});
+
+/* ---------- phase diagram ---------- */
+const PH = {kr:[0,1], lr:[0,1.2]};
+function phaseMap(){ const cv = $('#cv-phase'); return mapper(cv.clientWidth, cv.clientHeight, {l:36, r:12, t:26, b:32}, PH.kr, PH.lr); }
+function drawPhase(){
+  const cv = $('#cv-phase'); const {ctx, w, h} = prep(cv);
+  const M = mapper(w, h, {l:36, r:12, t:26, b:32}, PH.kr, PH.lr), {m} = M, rho = P.rho;
+  const b = k => k <= rho ? rho + k : 2*Math.sqrt(k*rho), NS = 160;
+  ctx.save(); ctx.beginPath(); ctx.rect(m.l, m.t, w-m.l-m.r, h-m.t-m.b); ctx.clip();
+  // autonomous: below b(k)
+  ctx.beginPath(); ctx.moveTo(M.X(0), M.Y(0));
+  for (let i=0;i<=NS;i++){ const k = i/NS; ctx.lineTo(M.X(k), M.Y(b(k))); }
+  ctx.lineTo(M.X(1), M.Y(0)); ctx.closePath(); ctx.fillStyle = COL['U-t']; ctx.fill();
+  // bistable: between sn and tc for k > rho
+  if (rho < 1){
+    ctx.beginPath();
+    for (let i=0;i<=NS;i++){ const k = rho + (1-rho)*i/NS; ctx.lineTo(M.X(k), M.Y(rho+k)); }
+    for (let i=NS;i>=0;i--){ const k = rho + (1-rho)*i/NS; ctx.lineTo(M.X(k), M.Y(2*Math.sqrt(k*rho))); }
+    ctx.closePath(); ctx.fillStyle = COL['C-t']; ctx.fill();
+  }
+  // offloading: above tc
+  ctx.beginPath(); ctx.moveTo(M.X(0), M.Y(rho)); ctx.lineTo(M.X(1), M.Y(rho+1)); ctx.lineTo(M.X(1), M.Y(3)); ctx.lineTo(M.X(0), M.Y(3)); ctx.closePath();
+  ctx.fillStyle = COL['D-t']; ctx.fill();
+  ctx.restore();
+  grid(ctx, M, {xl:'κ (sức kéo tập thể)', yl:'λ (lan truyền)'});
+  const tcL = [], snL = [];
+  for (let i=0;i<=200;i++){ const k = i/200; tcL.push([M.X(k), M.Y(rho+k)]); if (k >= rho) snL.push([M.X(k), M.Y(2*Math.sqrt(k*rho))]); }
+  ctx.save(); ctx.beginPath(); ctx.rect(m.l, m.t, w-m.l-m.r, h-m.t-m.b); ctx.clip();
+  poly(ctx, tcL, COL.ink, 2); poly(ctx, snL, COL.ink, 2, [6,4]);
+  poly(ctx, [[M.X(rho), M.Y(0)], [M.X(rho), M.Y(1.2)]], COL.muted, 1.4, [2,4]);
+  ctx.restore();
+  ctx.save(); ctx.font = FONT(12, 600); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = COL.U; ctx.fillText('tự chủ', M.X(0.72), M.Y(0.12));
+  ctx.fillStyle = COL.D; ctx.fillText('ghép nối / lệ thuộc', M.X(Math.min(0.3, rho/2+0.12)), M.Y(1.1));
+  const k0 = 0.9, sn0 = 2*Math.sqrt(k0*rho), tc0 = rho+k0;
+  if (k0 > rho && tc0 - sn0 > 0.07 && tc0 < 1.2){ ctx.fillStyle = COL.C; ctx.fillText('hai trạng thái', M.X(0.86), M.Y((sn0+tc0)/2)); }
+  ctx.restore();
+  // marker
+  const x = M.X(P.kappa), y = M.Y(Math.min(P.lambda, 1.2));
+  ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fillStyle = COL.ink; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = COL.paper; ctx.stroke();
+}
+(() => {
+  const cv = $('#cv-phase'); let drag = false;
+  const pick = e => {
+    const r = cv.getBoundingClientRect(), M = phaseMap();
+    const k = Math.min(1, Math.max(0.01, M.ix(e.clientX - r.left))), l = Math.min(1.2, Math.max(0, M.iy(e.clientY - r.top)));
+    setMany({kappa:k, lambda:l});
+  };
+  cv.addEventListener('pointerdown', e => { drag = true; cv.setPointerCapture(e.pointerId); pick(e); });
+  cv.addEventListener('pointermove', e => { if (drag) pick(e); });
+  cv.addEventListener('pointerup', () => drag = false);
+  cv.addEventListener('pointercancel', () => drag = false);
+})();
+
+/* ---------- numbers ---------- */
+const OUT = {
+  lam: () => fmt(P.lambda, 3),
+  sn: () => fmt(thr().sn, 3),
+  tc: () => fmt(thr().tc, 3),
+  width: () => thr().bi ? fmt(Math.pow(Math.sqrt(P.kappa)-Math.sqrt(P.rho), 2), 3) : '0 (κ ≤ ρ)',
+  regime: () => REG_TXT[regime()],
+  maxwell: () => { const m = maxwell(); return m ? fmt(m, 3) : 'không có, vì κ ≤ ρ'; },
+  uplus: () => { const r = roots(P.lambda); return (r && regime() === 'bi') ? fmt(r[1], 3) : 'không xác định (chỉ có trong vùng hai trạng thái)'; },
+  g: () => fmt(gEff(), 3),
+  gAfter: () => thr().bi ? fmt(gEff() + (1-gEff())*P.rho/P.kappa, 3) : '–',
+  gRec: () => thr().bi ? fmt(gEff() + (1-gEff())*Math.sqrt(P.rho/P.kappa), 3) : '–',
+  loss: () => thr().bi ? fmt((1-gEff())*(1-P.rho/P.kappa), 3) : 'không nhảy',
+  dshare: () => Math.round(100*P.mu/(P.mu+P.sigma)) + '% D'
+};
+function updateNumbers(){
+  $$('[data-out]').forEach(el => { el.textContent = OUT[el.dataset.out](); });
+  const reg = regime();
+  $$('[data-reg-out]').forEach(el => el.dataset.reg = reg);
+  const g = gEff(), bi = thr().bi;
+  $('#bar-g').style.width = (100*g) + '%';
+  $('#bar-after').style.width = bi ? (100*(g + (1-g)*P.rho/P.kappa)) + '%' : '0%';
+  $('#bar-rec').style.width = bi ? (100*(g + (1-g)*Math.sqrt(P.rho/P.kappa))) + '%' : '0%';
+  const ds = P.mu/(P.mu+P.sigma);
+  $('#bar-c').style.width = (100*(1-ds)) + '%'; $('#bar-d').style.width = (100*ds) + '%';
+  const gs = $('#g-status');
+  gs.dataset.reg = bi ? 'bi' : 'auto';
+  gs.textContent = bi
+    ? `Khi lật, năng lực trung bình rơi ${fmt((1-g)*(1-P.rho/P.kappa), 3)} trong một bước. Trên đường về, nó chỉ hồi phục khi λ xuống dưới ${fmt(thr().sn,3)}.`
+    : 'Vì κ ≤ ρ nên không có bước nhảy: năng lực giảm dần khi λ vượt ρ + κ, và hồi phục theo đúng đường đó khi λ giảm.';
+  potStatus();
+}
+
+/* ---------- presets & levers ---------- */
+const PRESETS = {
+  low: {lambda:0.30, U0:0.60, C0:0.30},
+  midA:{lambda:0.45, U0:0.95, C0:0.04},
+  midB:{lambda:0.45, U0:0.70, C0:0.20},
+  high:{lambda:0.60, U0:0.99, C0:0.01}
+};
+$$('[data-preset]').forEach(b => b.addEventListener('click', () => {
+  const pr = PRESETS[b.dataset.preset];
+  setMany({rho:DEF.rho, kappa:DEF.kappa, mu:DEF.mu, sigma:DEF.sigma});
+  P.U0 = pr.U0; P.C0 = pr.C0; syncCtl('U0'); syncCtl('C0');
+  setMany({lambda:pr.lambda});
+}));
+$$('[data-lever]').forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.lever; setMany({[k]: P[k] + (+b.dataset.d)});
+}));
+$('#b-default').addEventListener('click', () => setMany({lambda:0.45, rho:DEF.rho, kappa:DEF.kappa, mu:DEF.mu, sigma:DEF.sigma, gc:DEF.gc, gd:DEF.gd}));
+
+/* ---------- hero agent simulation ---------- */
+const H = {N:440, a:[], run:!reduceMotion, vis:true, hist:[], frame:0};
+function heroReset(){
+  H.a = [];
+  for (let i=0;i<H.N;i++){
+    const r = 0.93*Math.sqrt(Math.random()), th = Math.random()*Math.PI*2;
+    H.a.push({x:r*Math.cos(th), y:r*Math.sin(th), vx:0, vy:0, s:i<5?1:0, f:0});
+  }
+  H.hist = [];
+}
+function heroCounts(){ const c=[0,0,0]; H.a.forEach(a => c[a.s]++); return c; }
+function heroStep(dt){
+  const c = heroCounts(), u = c[0]/H.N, cf = c[1]/H.N, eps = 0.0004;
+  const back = P.rho + P.kappa*u*u, tot = back + P.mu;
+  for (const a of H.a){
+    const r = Math.random();
+    if (a.s === 0){ if (r < 1-Math.exp(-(P.lambda*cf + eps)*dt)){ a.s = 1; a.f = 1; } }
+    else if (a.s === 1){ if (r < 1-Math.exp(-tot*dt)){ a.s = Math.random() < back/tot ? 0 : 2; a.f = 1; } }
+    else { if (r < 1-Math.exp(-P.sigma*dt)){ a.s = 1; a.f = 1; } }
+    const sp = a.s === 0 ? 1 : a.s === 1 ? 0.65 : 0.25;
+    a.vx = a.vx*0.94 + (Math.random()-0.5)*0.0022*sp;
+    a.vy = a.vy*0.94 + (Math.random()-0.5)*0.0022*sp;
+    a.x += a.vx; a.y += a.vy;
+    const d = Math.hypot(a.x, a.y);
+    if (d > 0.94){ a.x *= 0.94/d; a.y *= 0.94/d; a.vx = -a.vx; a.vy = -a.vy; }
+  }
+  if (H.frame % 2 === 0){ H.hist.push(c.map(v => v/H.N)); if (H.hist.length > 360) H.hist.shift(); }
+  if (H.frame % 8 === 0){
+    $('#h-u').textContent = Math.round(100*c[0]/H.N) + '%';
+    $('#h-c').textContent = Math.round(100*c[1]/H.N) + '%';
+    $('#h-d').textContent = Math.round(100*c[2]/H.N) + '%';
+  }
+  H.frame++;
+}
+function drawDish(){
+  const cv = $('#cv-dish'); const {ctx, w, h} = prep(cv);
+  const R = Math.min(w,h)/2 - 3, cx = w/2, cy = h/2;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fillStyle = COL.paper; ctx.fill();
+  // reticle
+  ctx.save(); ctx.strokeStyle = COL.line; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx-R, cy); ctx.lineTo(cx+R, cy); ctx.moveTo(cx, cy-R); ctx.lineTo(cx, cy+R); ctx.stroke();
+  for (let i=-9;i<=9;i++){ const x = cx + i*R/10, l = i%5===0 ? 7 : 4; ctx.beginPath(); ctx.moveTo(x, cy-l); ctx.lineTo(x, cy+l); ctx.stroke(); }
+  ctx.beginPath(); ctx.arc(cx, cy, R*0.5, 0, 7); ctx.stroke();
+  ctx.restore();
+  const sc = R/215, rr = 2.9*sc + 0.5, cols = [COL.U, COL.C, COL.D];
+  for (const a of H.a){
+    const x = cx + a.x*R, y = cy + a.y*R;
+    if (a.f > 0){
+      ctx.beginPath(); ctx.arc(x, y, rr + (1-a.f)*11*sc, 0, 7);
+      ctx.strokeStyle = cols[a.s]; ctx.globalAlpha = a.f*0.7; ctx.lineWidth = 1.4; ctx.stroke(); ctx.globalAlpha = 1;
+      if (H.run) a.f = Math.max(0, a.f - 0.035);
+    }
+    ctx.beginPath(); ctx.arc(x, y, a.s === 2 ? rr*0.82 : rr, 0, 7); ctx.fillStyle = cols[a.s]; ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.lineWidth = 3; ctx.strokeStyle = COL.ink; ctx.globalAlpha = 0.8; ctx.stroke(); ctx.globalAlpha = 1;
+}
+function drawSpark(){
+  const cv = $('#cv-spark'); const {ctx, w, h} = prep(cv);
+  ctx.fillStyle = COL.paper; ctx.fillRect(0,0,w,h);
+  const n = H.hist.length; if (n < 2) return;
+  const X = i => w - (n-1-i)*(w/359);
+  const layer = (lo, hi, col) => {
+    ctx.beginPath();
+    for (let i=0;i<n;i++) ctx.lineTo(X(i), h*(1-hi(H.hist[i])));
+    for (let i=n-1;i>=0;i--) ctx.lineTo(X(i), h*(1-lo(H.hist[i])));
+    ctx.closePath(); ctx.fillStyle = col; ctx.fill();
+  };
+  layer(q => 0, q => q[2], COL.D);
+  layer(q => q[2], q => q[2]+q[1], COL.C);
+  layer(q => q[2]+q[1], q => 1, COL.U);
+}
+$('#h-play').textContent = H.run ? 'Tạm dừng' : 'Chạy';
+$('#h-play').addEventListener('click', () => { H.run = !H.run; $('#h-play').textContent = H.run ? 'Tạm dừng' : 'Chạy'; });
+$('#h-seed').addEventListener('click', () => {
+  const us = H.a.filter(a => a.s === 0);
+  for (let i=0;i<30 && us.length;i++){ const j = Math.floor(Math.random()*us.length); us[j].s = 1; us[j].f = 1; us.splice(j,1); }
+  if (!H.run){ drawDish(); }
+});
+$('#h-reset').addEventListener('click', () => { heroReset(); drawDish(); drawSpark(); });
+
+/* ---------- loop, visibility, render ---------- */
+let pending = false;
+function schedule(){ if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; renderAll(); }); }
+function renderAll(){
+  drawTS();
+  drawBif($('#cv-bif'), {yMode:BIF.yMode, sweep:true});
+  drawBif($('#cv-mini'), {yMode:'U', mini:true});
+  drawPhase(); drawPot(); updateNumbers();
+  if (!H.run){ drawDish(); drawSpark(); }
+}
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (e.target.id === 'cv-dish') H.vis = e.isIntersecting;
+  if (e.target.id === 'cv-pot') PT.vis = e.isIntersecting;
+}), {rootMargin:'60px'});
+io.observe($('#cv-dish')); io.observe($('#cv-pot'));
+function tick(){
+  if (H.vis && H.run){ heroStep(0.3); drawDish(); drawSpark(); }
+  if (PT.vis && !reduceMotion){ stepMarble(); drawPot(); }
+  if (SW.run){ sweepStep(); if (SW.run) sweepStep(); drawBif($('#cv-bif'), {yMode:BIF.yMode, sweep:true}); }
+  requestAnimationFrame(tick);
+}
+const ro = new ResizeObserver(() => schedule());
+$$('canvas').forEach(c => ro.observe(c));
+const onTheme = () => { readColors(); schedule(); };
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+new MutationObserver(onTheme).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme','class','style']});
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+
+heroReset();
+for (let i=0;i<20;i++) heroStep(0.3);
+renderAll(); drawDish(); drawSpark();
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
