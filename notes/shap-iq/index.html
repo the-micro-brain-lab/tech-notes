@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SHAP-IQ từ gốc: lý thuyết trò chơi, tương tác và thuật toán</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F3F7;--surface:#FFFFFF;--sunk:#E9E8F0;--ink:#1E1B33;--ink2:#5B5773;--rule:#D8D6E2;
+  --pos:#D9104A;--neg:#1A73CF;--pinc:#A87405;--plat:#0B8174;--plon:#6849CC;--accent:#6849CC;
+  --code-bg:#1E1B33;--code-ink:#ECEAF6;--code-dim:#9D98BA;
+  --sans:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --serif:"Literata",Georgia,"Times New Roman",serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#13121B;--surface:#1C1A28;--sunk:#262437;--ink:#ECEAF6;--ink2:#A6A2BE;--rule:#322F47;
+    --pos:#FF5281;--neg:#55A6FF;--pinc:#E2B443;--plat:#35C7B4;--plon:#A58FF6;--accent:#A58FF6;
+    --code-bg:#0D0C14;--code-ink:#ECEAF6;--code-dim:#8C88A8;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#13121B;--surface:#1C1A28;--sunk:#262437;--ink:#ECEAF6;--ink2:#A6A2BE;--rule:#322F47;
+  --pos:#FF5281;--neg:#55A6FF;--pinc:#E2B443;--plat:#35C7B4;--plon:#A58FF6;--accent:#A58FF6;
+  --code-bg:#0D0C14;--code-ink:#ECEAF6;--code-dim:#8C88A8;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:1.0625rem;line-height:1.75;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-underline-offset:3px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:6px}
+img,svg{max-width:100%}
+
+.shell{max-width:1200px;margin:0 auto;padding:0 20px 80px;display:grid;grid-template-columns:minmax(0,1fr)}
+@media (min-width:1120px){.shell{grid-template-columns:200px minmax(0,1fr);gap:64px}}
+.rail{display:none}
+@media (min-width:1120px){
+  .rail{display:block;position:sticky;top:calc(28px + env(safe-area-inset-top,0px));align-self:start;padding-top:40px;font-family:var(--sans);font-size:.86rem;line-height:1.35}
+}
+.rail p{margin:0 0 14px;color:var(--ink2);font-weight:600}
+.rail ol{list-style:none;margin:0;padding:0;counter-reset:ch}
+.rail li{counter-increment:ch;margin:0}
+.rail a{display:grid;grid-template-columns:22px 1fr;gap:6px;padding:6px 0;color:var(--ink2);text-decoration:none}
+.rail a::before{content:counter(ch);font-weight:700;font-variant-numeric:tabular-nums;color:var(--rule)}
+.rail a:hover{color:var(--ink)}
+.rail a.on{color:var(--ink)}
+.rail a.on::before{color:var(--accent)}
+
+main{min-width:0;max-width:960px}
+.prose>p,.prose>ul,.prose>ol,.prose>h2,.prose>h3,.prose>dl,.prose>.eq,.prose>blockquote{max-width:680px}
+h1,h2,h3,.sans{font-family:var(--sans)}
+h2{font-size:clamp(1.55rem,3.2vw,2.1rem);line-height:1.15;letter-spacing:-.02em;font-weight:800;margin:96px 0 18px;display:flex;align-items:baseline;gap:14px}
+h2 .n{font-size:.95rem;font-weight:700;color:var(--paper);background:var(--ink);border-radius:50%;width:2em;height:2em;display:inline-grid;place-items:center;flex:none;transform:translateY(-3px);font-variant-numeric:tabular-nums}
+h3{font-size:1.18rem;font-weight:700;letter-spacing:-.01em;margin:40px 0 10px}
+p{margin:0 0 1.05em}
+strong{font-weight:600}
+em{font-style:italic}
+ul,ol{padding-left:1.3em}
+li{margin:.3em 0}
+.lede{font-size:1.2rem;line-height:1.6;color:var(--ink2);max-width:640px}
+.note{font-family:var(--sans);font-size:.88rem;line-height:1.55;color:var(--ink2)}
+.m{font-family:var(--serif);font-style:italic;white-space:nowrap}
+.m sub,.m sup{font-style:normal;font-size:.72em}
+@media (max-width:640px){.m{white-space:normal}}
+.eq{font-family:var(--serif);font-size:1.12rem;background:var(--sunk);border-radius:10px;padding:16px 20px;margin:18px 0 22px;overflow-x:auto;line-height:1.9}
+.eq .lab{display:block;font-family:var(--sans);font-size:.8rem;color:var(--ink2);font-style:normal;margin-bottom:2px}
+blockquote{margin:24px 0;padding:4px 0 4px 20px;border-left:3px solid var(--accent);color:var(--ink)}
+code{font-family:var(--mono);font-size:.86em;background:var(--sunk);padding:.1em .35em;border-radius:5px}
+pre{font-family:var(--mono);font-size:.84rem;line-height:1.6;background:var(--code-bg);color:var(--code-ink);padding:18px 20px;border-radius:12px;overflow-x:auto;margin:20px 0}
+pre code{background:none;padding:0;font-size:inherit;color:inherit}
+pre .c{color:var(--code-dim)}
+
+/* players */
+.p-I{--c:var(--pinc)} .p-La{--c:var(--plat)} .p-Lo{--c:var(--plon)}
+.chip{font-family:var(--sans);font-weight:600;font-size:.88em;color:var(--c);white-space:nowrap}
+.dot{display:inline-block;width:.62em;height:.62em;border-radius:50%;background:var(--c);margin-right:.3em;transform:translateY(-1px)}
+
+/* hero */
+.hero{padding:56px 0 8px}
+.kicker{font-family:var(--sans);font-size:.92rem;color:var(--ink2);margin:0 0 18px}
+h1{font-size:clamp(2.6rem,7vw,5rem);line-height:.98;letter-spacing:-.045em;font-weight:800;margin:0 0 22px;max-width:12ch}
+.board{margin:36px 0 10px;display:grid;grid-template-columns:minmax(0,1fr);gap:28px;align-items:center}
+@media (min-width:760px){.board{grid-template-columns:auto minmax(0,1fr);gap:48px}}
+.tokens{display:flex;gap:18px;flex-wrap:wrap}
+.tokbtn{all:unset;cursor:pointer;display:grid;justify-items:center;gap:8px;font-family:var(--sans);font-size:.86rem;font-weight:600;color:var(--ink2);width:88px;text-align:center}
+.tokbtn .disc{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:1.05rem;letter-spacing:-.01em;border:2.5px dashed var(--c);color:var(--c);background:transparent;transition:background .18s,color .18s,transform .18s}
+.tokbtn[aria-pressed="true"] .disc{background:var(--c);color:var(--surface);border-style:solid}
+.tokbtn[aria-pressed="true"]{color:var(--ink)}
+.tokbtn:active .disc{transform:scale(.95)}
+.tokbtn:focus-visible{outline:none}
+.tokbtn:focus-visible .disc{outline:3px solid var(--accent);outline-offset:4px}
+.readout{font-family:var(--sans)}
+.readout .big{font-size:clamp(3.4rem,10vw,6.2rem);font-weight:800;letter-spacing:-.05em;line-height:1;font-variant-numeric:tabular-nums}
+.readout .big small{font-size:.32em;letter-spacing:0;font-weight:600;color:var(--ink2);margin-left:.25em}
+.readout .who{font-size:.95rem;color:var(--ink2);margin-top:8px}
+.strip{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;margin-top:26px;font-family:var(--sans)}
+.strip div{background:var(--sunk);border-radius:8px;padding:8px 4px 6px;text-align:center;font-size:.72rem;color:var(--ink2);line-height:1.3;border:1.5px solid transparent}
+.strip div b{display:block;font-size:.95rem;color:var(--ink);font-variant-numeric:tabular-nums}
+.strip div.cur{border-color:var(--ink);background:var(--surface)}
+.strip .pips{display:flex;justify-content:center;gap:3px;height:9px;margin-bottom:4px}
+.strip .pips i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+@media (max-width:560px){.strip{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* figures */
+.fig{background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:22px;margin:30px 0 34px}
+.fig>.cap{font-family:var(--sans);font-size:.86rem;line-height:1.55;color:var(--ink2);margin:16px 0 0;max-width:680px}
+.fig h4{font-family:var(--sans);font-size:1rem;font-weight:700;margin:0 0 4px}
+.fig .sub{font-family:var(--sans);font-size:.86rem;color:var(--ink2);margin:0 0 16px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-family:var(--sans);font-size:.88rem}
+.ctl+.ctl{margin-top:10px}
+.ctl .lbl{color:var(--ink2);margin-right:4px}
+.btn{font:600 .86rem var(--sans);color:var(--ink);background:var(--sunk);border:1.5px solid transparent;border-radius:999px;padding:7px 14px;cursor:pointer;line-height:1.2}
+.btn:hover{border-color:var(--rule)}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.btn.ghost{background:transparent;border-color:var(--rule)}
+.scroll{overflow-x:auto}
+
+/* table of mapping */
+dl.map{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin:22px 0;border-top:1px solid var(--rule)}
+dl.map>div{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid var(--rule)}
+dl.map dt{font-family:var(--sans);font-weight:700;font-size:.95rem}
+dl.map dd{margin:0}
+dl.map dt span{display:block;font-weight:500;color:var(--ink2);font-size:.84rem}
+@media (max-width:560px){dl.map>div{grid-template-columns:minmax(0,1fr);gap:4px}}
+
+/* bars */
+.bars{font-family:var(--sans);font-size:.88rem;display:grid;gap:7px}
+.bar{display:grid;grid-template-columns:minmax(90px,170px) minmax(0,1fr) 64px;align-items:center;gap:10px}
+.bar .nm{color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .tr{position:relative;height:18px;background:var(--sunk);border-radius:4px}
+.bar .tr .z{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:var(--ink2);opacity:.5}
+.bar .tr .f{position:absolute;top:0;bottom:0;border-radius:3px;transition:left .25s,width .25s}
+.bar .tr .ex{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--ink);border-radius:2px;transition:left .25s}
+.bar .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+
+/* permutations */
+.perms{display:flex;flex-wrap:wrap;gap:8px}
+.perm{display:inline-flex;gap:5px;align-items:center;padding:8px 12px;border-radius:999px;background:var(--sunk);border:1.5px solid transparent;cursor:pointer;font:600 .82rem var(--sans);color:var(--ink)}
+.perm i{width:16px;height:16px;border-radius:50%;background:var(--c);display:inline-grid;place-items:center;font-style:normal;color:var(--surface);font-size:.62rem;font-weight:800}
+.perm .ar{color:var(--ink2);font-size:.75rem}
+.perm[aria-pressed="true"]{border-color:var(--ink);background:var(--surface)}
+.perm.seen::after{content:"đã xem";font-weight:500;color:var(--ink2);font-size:.72rem;margin-left:4px}
+.stair{margin:20px 0 6px;font-family:var(--sans);font-size:.8rem}
+.stair .row{display:flex;height:42px;border-radius:8px;overflow:hidden;background:var(--sunk)}
+.stair .seg{display:grid;place-items:center;color:var(--surface);font-weight:700;font-size:.82rem;background:var(--c);transition:flex-grow .35s;min-width:0;white-space:nowrap;overflow:hidden}
+.stair .seg.base{background:var(--rule);color:var(--ink2)}
+.stair .axis{display:flex;justify-content:space-between;color:var(--ink2);margin-top:5px;font-variant-numeric:tabular-nums}
+table.t{border-collapse:collapse;font-family:var(--sans);font-size:.88rem;width:100%;margin-top:14px;font-variant-numeric:tabular-nums}
+table.t th,table.t td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--rule);white-space:nowrap}
+table.t th:first-child,table.t td:first-child{text-align:left}
+table.t thead th{font-weight:600;color:var(--ink2);font-size:.8rem}
+table.t td.hl{font-weight:700}
+
+/* derivative */
+.deriv{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-family:var(--sans);margin:18px 0 8px}
+.deriv .cell{background:var(--sunk);border-radius:10px;padding:8px 12px;text-align:center;min-width:86px}
+.deriv .cell b{display:block;font-size:1.35rem;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.deriv .cell span{font-size:.74rem;color:var(--ink2)}
+.deriv .op{font-size:1.3rem;color:var(--ink2);font-weight:600}
+.deriv .res{border-radius:10px;padding:8px 14px;text-align:center;min-width:96px;border:2px solid currentColor}
+.deriv .res b{display:block;font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums}
+.deriv .res span{font-size:.74rem}
+
+/* lattice */
+.lat svg{display:block;width:100%;max-width:640px;height:auto;margin:0 auto}
+.lat .node rect{fill:var(--sunk);stroke:var(--rule);stroke-width:1.5;transition:fill .2s,stroke .2s}
+.lat .node text{font-family:var(--sans);fill:var(--ink)}
+.lat .node .val{font-weight:800;font-size:15px}
+.lat .node .nm{font-size:11px;fill:var(--ink2)}
+.lat .node{cursor:pointer}
+.lat .node.sel rect{fill:var(--surface);stroke:var(--ink);stroke-width:2.5}
+.lat .node.sub rect{fill:var(--surface);stroke:var(--accent);stroke-width:2}
+.lat .node:focus{outline:none}
+.lat .node:focus-visible rect{stroke:var(--accent);stroke-width:3}
+.lat line{stroke:var(--rule);stroke-width:1.5}
+.lat line.on{stroke:var(--accent);stroke-width:2.5}
+.sumline{font-family:var(--sans);font-size:.95rem;text-align:center;margin-top:12px;font-variant-numeric:tabular-nums;line-height:1.7}
+
+/* index table */
+.ix th,.ix td{text-align:center!important}
+.ix td.nm,.ix th.nm{text-align:left!important;font-weight:600}
+.ix td.c{border-radius:0;min-width:54px}
+.ix td.na{color:var(--rule)}
+.ix td.sum{font-weight:700}
+.ix .ok{color:var(--plat);font-weight:700}
+.ix .no{color:var(--pos);font-weight:700}
+.ix thead th.grp{color:var(--ink);font-size:.78rem}
+.sliders{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 22px;font-family:var(--sans);font-size:.86rem;margin:6px 0 14px}
+.sliders label{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center}
+.sliders input{grid-column:1/-1;width:100%;accent-color:var(--accent)}
+.sliders output{font-variant-numeric:tabular-nums;font-weight:700}
+
+/* scatter */
+.sc svg{display:block;width:100%;max-width:520px;height:auto;margin:0 auto}
+.sc .ax{font-family:var(--sans);font-size:11px;fill:var(--ink2)}
+
+/* shapiq demo */
+.sizes{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px;align-items:end;height:150px;font-family:var(--sans);font-size:.72rem;margin:10px 0 4px}
+.sizes .col{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-end;height:100%;text-align:center;color:var(--ink2)}
+.sizes .col .b{border-radius:5px 5px 0 0;background:var(--rule);transition:background .2s}
+.sizes .col.ex .b{background:var(--plat)}
+.sizes .col.sa .b{background:repeating-linear-gradient(135deg,var(--plon) 0 5px,transparent 5px 9px);border:1.5px solid var(--plon);border-bottom:0}
+.sizes .col span{margin-top:4px;font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-family:var(--sans);font-size:.8rem;color:var(--ink2);margin-top:10px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.two{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;margin-top:20px}
+@media (min-width:820px){.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.tri{display:grid;gap:3px;font-family:var(--sans);font-size:.68rem;font-variant-numeric:tabular-nums}
+.tri div{aspect-ratio:1;display:grid;place-items:center;border-radius:4px;color:var(--ink)}
+.tri .h{background:none;color:var(--ink2);font-weight:600;font-size:.72rem}
+.tri .e{background:none}
+.stat{font-family:var(--sans);font-size:.9rem;margin:14px 0 0;line-height:1.6}
+.stat b{font-variant-numeric:tabular-nums}
+input[type=range]{accent-color:var(--accent)}
+.rangewrap{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;font-family:var(--sans);font-size:.9rem}
+.rangewrap output{font-weight:700;font-variant-numeric:tabular-nums;min-width:3.5ch;text-align:right}
+.bigcount{font-family:var(--sans);font-weight:800;font-size:clamp(1.6rem,4.5vw,2.6rem);letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.1;margin:16px 0 4px;overflow-wrap:anywhere}
+
+/* summary */
+.choose{margin:22px 0;border-top:2px solid var(--ink)}
+.choose>div{display:grid;grid-template-columns:minmax(0,1fr);gap:4px 24px;padding:16px 0;border-bottom:1px solid var(--rule)}
+@media (min-width:700px){.choose>div{grid-template-columns:260px minmax(0,1fr)}}
+.choose .q{font-family:var(--sans);font-weight:700}
+.choose .a{margin:0}
+footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--rule);font-family:var(--sans);font-size:.86rem;color:var(--ink2);max-width:680px}
+footer ul{padding-left:1.1em}
+</style>
+<link rel="stylesheet" href="../../assets/site.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Site">
+  <div class="inner">
+    <a class="brand" href="../../">Tech Notes</a>
+    <div class="links"><a href="../../">Home</a></div>
+  </div>
+</nav>
+<div class="shell">
+<nav class="rail" aria-label="Các chương">
+  <p>Lộ trình đọc</p>
+  <ol>
+    <li><a href="#c1">Mô hình là một trò chơi</a></li>
+    <li><a href="#c2">“Vắng mặt” nghĩa là gì</a></li>
+    <li><a href="#c3">Giá trị Shapley</a></li>
+    <li><a href="#c4">Điều Shapley che mất</a></li>
+    <li><a href="#c5">Möbius: các viên gạch</a></li>
+    <li><a href="#c6">Họ chỉ số tương tác</a></li>
+    <li><a href="#c7">Kiểm chứng với tài liệu</a></li>
+    <li><a href="#c8">Thuật toán SHAP-IQ</a></li>
+    <li><a href="#c9">Dùng trên mô hình thật</a></li>
+    <li><a href="#c10">Chọn chỉ số nào</a></li>
+  </ol>
+</nav>
+
+<main class="prose">
+<header class="hero">
+  <p class="kicker">Giải thích SHAP-IQ và thư viện shapiq, từ lý thuyết trò chơi đến thuật toán</p>
+  <h1>Ai đã làm nên con số 454?</h1>
+  <p class="lede">Một mô hình định giá nhà trả về 454 nghìn đô cho một căn gần San Francisco. Giá trung bình là 200. Phần chênh 254 là công của ai: thu nhập khu vực, vĩ độ hay kinh độ? Và nếu vĩ độ chỉ có giá trị <em>khi đi cùng</em> kinh độ thì công đó tính cho ai?</p>
+
+  <div class="board">
+    <div>
+      <div class="tokens" id="heroTokens"></div>
+    </div>
+    <div class="readout" aria-live="polite">
+      <div class="big"><span id="heroVal">454</span><small>k$</small></div>
+      <div class="who" id="heroWho"></div>
+    </div>
+  </div>
+  <div class="strip" id="heroStrip" aria-label="Giá trị của cả 8 liên minh"></div>
+  <p class="note" style="margin-top:14px">Bật, tắt từng đặc trưng. Mỗi tổ hợp đặc trưng đang “có mặt” là một <strong>liên minh</strong>; con số là dự đoán của mô hình khi nó chỉ được biết các đặc trưng đó. Đây là mô hình đồ chơi với số liệu giả định, dựng theo đúng câu chuyện nhà ở California mà tài liệu shapiq dùng (vĩ độ và kinh độ chỉ có ý nghĩa khi đi cùng nhau). Toàn bộ trang dùng lại căn nhà này để mọi phép tính đều kiểm tra được bằng tay.</p>
+</header>
+
+<!-- 1 -->
+<section id="c1">
+<h2><span class="n">1</span>Mô hình là một trò chơi hợp tác</h2>
+<p>Năm 1953, Lloyd Shapley đặt câu hỏi: một nhóm người chơi cùng hợp tác tạo ra một khoản lợi ích, vậy chia khoản đó thế nào cho <em>công bằng</em>? Ông mô tả trò chơi bằng một hàm duy nhất <span class="m">ν(S)</span>, cho biết nếu chỉ nhóm <span class="m">S</span> hợp tác thì tạo ra bao nhiêu.</p>
+<p>Giải thích một dự đoán của mô hình học máy chính là bài toán đó. Chỉ cần dịch từ vựng:</p>
+<dl class="map">
+  <div><dt>Người chơi<span>player</span></dt><dd>Các đặc trưng của một quan sát. Với căn nhà: <span class="chip p-I"><span class="dot"></span>Thu nhập</span>, <span class="chip p-La"><span class="dot"></span>Vĩ độ</span>, <span class="chip p-Lo"><span class="dot"></span>Kinh độ</span>. Tập tất cả người chơi gọi là <span class="m">N</span>, có <span class="m">n</span> phần tử.</dd></div>
+  <div><dt>Liên minh<span>coalition</span></dt><dd>Một tập con <span class="m">S ⊆ N</span> các đặc trưng được “biết”. Với <span class="m">n</span> đặc trưng có <span class="m">2<sup>n</sup></span> liên minh, ở đây là 8.</dd></div>
+  <div><dt>Hàm giá trị<span>value function ν</span></dt><dd><span class="m">ν(S)</span> = dự đoán của mô hình khi chỉ biết các đặc trưng trong <span class="m">S</span>, các đặc trưng còn lại bị “xoá” (chương 2 nói cách xoá).</dd></div>
+  <div><dt>Khoản cần chia<span>payout</span></dt><dd><span class="m">ν(N) − ν(∅)</span> = dự đoán thật trừ đi dự đoán khi không biết gì (giá trị nền). Ở đây 454 − 200 = 254.</dd></div>
+  <div><dt>Phép chia<span>attribution / index</span></dt><dd>Một con số cho mỗi người chơi (giá trị Shapley) hoặc cho mỗi <em>nhóm</em> người chơi (chỉ số tương tác Shapley, thứ shapiq tính).</dd></div>
+</dl>
+<h3>Vì sao lại là lý thuyết trò chơi, chứ không phải một heuristic?</h3>
+<p>Có rất nhiều cách “đo tầm quan trọng” của đặc trưng: nhìn hệ số hồi quy, xem độ giảm sai số khi hoán vị, đếm số lần cây dùng một đặc trưng. Mỗi cách cho một con số, nhưng không cách nào trả lời được câu “con số này <em>có nghĩa</em> là gì, và vì sao lại là nó mà không là số khác?”.</p>
+<p>Lý thuyết trò chơi đổi câu hỏi: thay vì chọn một công thức rồi hy vọng nó hợp lý, ta <strong>viết ra các yêu cầu công bằng</strong> trước (gọi là tiên đề), rồi chứng minh có đúng một công thức thoả mãn tất cả. Khi đó lời giải thích không còn là ý kiến của người làm công cụ; nó là hệ quả logic của những yêu cầu mà ai cũng có thể đọc và đồng ý hay phản đối. Thêm nữa, cách nhìn này không cần biết bên trong mô hình là gì: chỉ cần gọi được <span class="m">ν(S)</span>. Đó là lý do cùng một khung dùng được cho rừng ngẫu nhiên, mạng nơ-ron, TabPFN hay mô hình ngôn ngữ.</p>
+<p>SHAP (giá trị Shapley cho học máy) đi đến đây và dừng ở mức <em>một số cho mỗi đặc trưng</em>. SHAP-IQ (Shapley Interaction Quantification) đi thêm một bước: chia cả cho các <em>nhóm</em> đặc trưng, theo cùng tinh thần tiên đề. Tên “SHAP-IQ” vừa là thuật toán xấp xỉ trong bài báo NeurIPS 2023 của Fumagalli và cộng sự, vừa là gốc tên của thư viện <code>shapiq</code> (NeurIPS 2024) chứa thuật toán đó cùng nhiều phương pháp khác.</p>
+</section>
+
+<!-- 2 -->
+<section id="c2">
+<h2><span class="n">2</span>“Vắng mặt” nghĩa là gì?</h2>
+<p>Mô hình nào cũng cần đủ đầu vào. Muốn tính <span class="m">ν({Kinh độ})</span> ta phải điền <em>một thứ gì đó</em> vào chỗ vĩ độ và thu nhập. Trong shapiq, việc này do các <strong>imputer</strong> đảm nhận, và lựa chọn của bạn ở đây định nghĩa luôn trò chơi đang được giải thích.</p>
+<ul>
+  <li><strong>Baseline</strong>: điền một giá trị cố định (thường là trung bình). Nhanh, nhưng một điểm trung bình có thể không phải căn nhà nào có thật.</li>
+  <li><strong>Marginal</strong> (lề): lấy giá trị của các căn nhà ngẫu nhiên trong dữ liệu nền, chạy mô hình rồi lấy trung bình. Bỏ qua tương quan giữa các đặc trưng.</li>
+  <li><strong>Conditional</strong> (có điều kiện): chỉ lấy giá trị từ những căn nhà <em>giống</em> căn đang xét ở các đặc trưng còn giữ lại. Tôn trọng tương quan, nhưng tốn công hơn.</li>
+</ul>
+<div class="fig sc">
+  <h4>Xoá vĩ độ, giữ kinh độ</h4>
+  <p class="sub">Mỗi chấm xám là một căn nhà trong dữ liệu nền. Chấm đậm là căn nhà ta giải thích. Các chấm màu là những “căn nhà” mà mô hình phải dự đoán để tính ν({Kinh độ}).</p>
+  <div class="ctl" role="group" aria-label="Chọn imputer">
+    <span class="lbl">Imputer:</span>
+    <button class="btn" data-imp="baseline">Baseline</button>
+    <button class="btn" data-imp="marginal" aria-pressed="true">Marginal</button>
+    <button class="btn" data-imp="conditional">Conditional</button>
+  </div>
+  <svg id="scatter" viewBox="0 0 520 330" role="img" aria-label="Biểu đồ phân tán vĩ độ theo kinh độ"></svg>
+  <p class="cap" id="impCap"></p>
+</div>
+<p>Vĩ độ và kinh độ ở California tương quan mạnh: nhà nằm dọc theo một dải đất. Imputer lề tạo ra những tổ hợp không có thật (một căn nằm giữa Thái Bình Dương) và mô hình phải đoán cho chúng. Không có lựa chọn nào “đúng tuyệt đối”: lề trả lời câu hỏi về <em>mô hình</em> (nó dùng đặc trưng nào), có điều kiện trả lời câu hỏi gần hơn với <em>dữ liệu</em>. Tài liệu shapiq có riêng một ví dụ về imputer trên dữ liệu tương quan; với dữ liệu định giá nhà, nơi diện tích, số phòng và vị trí đi cùng nhau, đây là quyết định đáng ghi rõ trong báo cáo.</p>
+<p>Từ đây trở đi ta coi <span class="m">ν</span> là đã có. Mọi thứ shapiq làm sau đó chỉ là <em>đọc</em> các giá trị <span class="m">ν(S)</span> và phân chia chúng.</p>
+</section>
+
+<!-- 3 -->
+<section id="c3">
+<h2><span class="n">3</span>Giá trị Shapley: trung bình của công đóng góp</h2>
+<p>Ý tưởng trực giác nhất: cho người chơi lần lượt bước vào phòng theo một thứ tự. Mỗi người được ghi công bằng đúng phần giá trị tăng thêm khi họ bước vào, gọi là <strong>đóng góp biên</strong> <span class="m">ν(S ∪ {i}) − ν(S)</span>. Nhưng thứ tự nào? Người vào sau thường được lợi (hoặc thiệt) vì những người đã ở trong. Shapley trả lời: không thiên vị thứ tự nào, lấy <strong>trung bình qua mọi thứ tự</strong>.</p>
+<div class="fig">
+  <h4>Sáu thứ tự bước vào phòng</h4>
+  <p class="sub">Chọn từng thứ tự. Thanh dưới chạy từ 200 (không biết gì) đến 454 (biết hết); mỗi đoạn là công đóng góp biên của người vừa bước vào.</p>
+  <div class="perms" id="perms" role="group" aria-label="Các thứ tự"></div>
+  <div class="stair" id="stair"></div>
+  <div class="ctl" style="margin-top:12px">
+    <button class="btn ghost" id="permAll">Xem cả 6 thứ tự</button>
+    <button class="btn ghost" id="permReset">Đặt lại</button>
+  </div>
+  <div class="scroll"><table class="t" id="permTable"></table></div>
+  <p class="cap">Sau khi xem đủ 6 thứ tự, cột trung bình trùng khớp giá trị Shapley chính xác. Nếu có 20 đặc trưng thì có hơn 2.4 × 10<sup>18</sup> thứ tự; lấy ngẫu nhiên một số thứ tự rồi trung bình chính là thuật toán <em>permutation sampling</em>, một trong các bộ xấp xỉ của shapiq.</p>
+</div>
+<p>Gộp các thứ tự có cùng tập người đứng trước, ta được công thức đóng:</p>
+<div class="eq"><span class="lab">Giá trị Shapley của người chơi i</span>
+φ<sub>i</sub> = Σ<sub>S ⊆ N∖{i}</sub> &nbsp;<span style="font-style:normal">|S|! (n − |S| − 1)! / n!</span>&nbsp; · [ ν(S ∪ {i}) − ν(S) ]</div>
+<p>Trọng số <span class="m">|S|!(n−|S|−1)!/n!</span> chỉ là tỉ lệ các thứ tự trong đó đúng tập <span class="m">S</span> đứng trước <span class="m">i</span>. Vì vậy hai cách nhìn (thứ tự và tập con) là một.</p>
+
+<h3>Bốn tiên đề làm nên chữ “công bằng”</h3>
+<p>Điều khiến giá trị Shapley khác mọi heuristic là định lý sau: <strong>nó là phép chia duy nhất</strong> thoả mãn đồng thời bốn yêu cầu.</p>
+<dl class="map">
+  <div><dt>Hiệu quả<span>efficiency</span></dt><dd>Tổng các phần chia bằng đúng khoản cần chia: <span class="m">Σ φ<sub>i</sub> = ν(N) − ν(∅)</span>. Không thừa, không thiếu. Với nhà của ta: tổng phải là 254.</dd></div>
+  <div><dt>Đối xứng<span>symmetry</span></dt><dd>Hai đặc trưng đóng góp như nhau trong mọi liên minh thì nhận phần như nhau. Tên hay thứ tự cột không ảnh hưởng.</dd></div>
+  <div><dt>Người vô dụng<span>dummy / null player</span></dt><dd>Đặc trưng không bao giờ làm dự đoán thay đổi thì nhận 0. Mô hình không dùng nó thì lời giải thích không được nhắc đến nó.</dd></div>
+  <div><dt>Tuyến tính<span>linearity</span></dt><dd>Giải thích tổng của hai mô hình bằng tổng hai lời giải thích. Nhờ đó giải thích một rừng cây bằng cách cộng giải thích từng cây.</dd></div>
+</dl>
+<p>Đây là “vai trò” thật sự của lý thuyết trò chơi trong diễn giải mô hình: nó biến một câu hỏi mơ hồ (“đặc trưng nào quan trọng?”) thành một câu hỏi có đáp án duy nhất, có thể kiểm tra, và tách bạch rõ phần nào là lựa chọn của con người (định nghĩa <span class="m">ν</span>, chọn imputer) với phần nào là toán học bắt buộc (cách chia).</p>
+</section>
+
+<!-- 4 -->
+<section id="c4">
+<h2><span class="n">4</span>Điều Shapley che mất</h2>
+<p>Giá trị Shapley của căn nhà:</p>
+<div class="fig">
+  <div class="bars" id="svBars"></div>
+  <p class="cap">Tổng ba thanh bằng 254: tiên đề hiệu quả được thoả.</p>
+</div>
+<p>Vĩ độ nhận khoảng 43. Nhưng nhìn lại bảng 8 liên minh ở đầu trang: biết <em>riêng</em> vĩ độ chỉ đẩy giá từ 200 lên 204. Phần lớn công của vĩ độ đến từ lúc nó đi cùng kinh độ, khi hai số ghép lại thành “gần San Francisco”. Giá trị Shapley gộp <strong>hiệu ứng riêng</strong> và <strong>hiệu ứng chung</strong> vào một con số, nên ta không biết:</p>
+<ul>
+  <li>bao nhiêu phần ảnh hưởng của một đặc trưng là của riêng nó, bao nhiêu là chia với người khác;</li>
+  <li>nó chia với <em>ai</em>.</li>
+</ul>
+<h3>Đo tương tác: đạo hàm rời rạc</h3>
+<p>Muốn biết hai đặc trưng <span class="m">i, j</span> có “làm việc chung” không, so giá trị khi có cả hai với tổng hiệu ứng khi có từng người, trong một ngữ cảnh <span class="m">T</span> cho trước (những người chơi khác đã có mặt):</p>
+<div class="eq"><span class="lab">Đạo hàm rời rạc bậc 2</span>
+Δ<sub>ij</sub>(T) = ν(T ∪ {i,j}) − ν(T ∪ {i}) − ν(T ∪ {j}) + ν(T)</div>
+<p>Dương nghĩa là <strong>bổ trợ</strong> (synergy): cùng nhau tạo ra nhiều hơn tổng từng người. Âm nghĩa là <strong>dư thừa</strong> hay thay thế (redundancy): hai người mang cùng một thông tin, có một là đủ. Bằng 0 nghĩa là hiệu ứng cộng thẳng.</p>
+<div class="fig">
+  <h4>Thử đạo hàm rời rạc</h4>
+  <div class="ctl" role="group" aria-label="Chọn cặp"><span class="lbl">Cặp:</span><span id="pairBtns"></span></div>
+  <div class="ctl" role="group" aria-label="Chọn ngữ cảnh"><span class="lbl">Ngữ cảnh T:</span><span id="ctxBtns"></span></div>
+  <div class="deriv" id="deriv"></div>
+  <p class="cap" id="derivCap"></p>
+</div>
+<p>Một quan sát quan trọng: Δ phụ thuộc ngữ cảnh. Cặp vĩ độ và kinh độ cho +72 khi không có thu nhập, nhưng +82 khi có. Phần chênh 10 đến từ một hiệu ứng mà <em>cả ba</em> cùng tạo ra. Chỉ số tương tác Shapley (SII, Grabisch và Roubens 1999) lấy trung bình Δ qua mọi ngữ cảnh với trọng số kiểu Shapley, giống hệt cách giá trị Shapley lấy trung bình đóng góp biên. Thực tế, giá trị Shapley chính là SII với tập một phần tử.</p>
+</section>
+
+<!-- 5 -->
+<section id="c5">
+<h2><span class="n">5</span>Möbius: các viên gạch của mọi trò chơi</h2>
+<p>Có một cách nhìn làm sáng tỏ tất cả các chỉ số: mọi trò chơi đều là <strong>tổng của các tương tác thuần</strong>, mỗi tập con <span class="m">T</span> đóng góp một viên gạch <span class="m">m(T)</span>. Giá trị của liên minh <span class="m">S</span> là tổng các viên gạch nằm trọn trong nó:</p>
+<div class="eq"><span class="lab">Biến đổi Möbius và nghịch đảo của nó</span>
+ν(S) = Σ<sub>T ⊆ S</sub> m(T) &nbsp;&nbsp;&nbsp;&nbsp; m(T) = Σ<sub>L ⊆ T</sub> (−1)<sup>|T| − |L|</sup> ν(L)</div>
+<p>Căn nhà của ta được dựng từ đúng các viên gạch này: <span class="chip p-I">Thu nhập</span> +120, <span class="chip p-La">Vĩ độ</span> +4, <span class="chip p-Lo">Kinh độ</span> +60, cặp vĩ độ–kinh độ +72 (vị trí), cặp thu nhập–kinh độ −12 (dư thừa nhẹ: vùng ven biển vốn đã giàu), bộ ba +10, cộng nền 200.</p>
+<div class="fig lat">
+  <h4>Dàn các liên minh</h4>
+  <p class="sub">Bấm vào một liên minh để thấy giá trị của nó được ghép từ những viên gạch nào.</p>
+  <div class="ctl" role="group" aria-label="Hiển thị">
+    <span class="lbl">Hiển thị:</span>
+    <button class="btn" data-latmode="nu" aria-pressed="true">Giá trị ν(S)</button>
+    <button class="btn" data-latmode="m">Viên gạch m(S)</button>
+  </div>
+  <svg id="lattice" viewBox="0 0 600 330" role="group" aria-label="Dàn liên minh"></svg>
+  <div class="sumline" id="latSum"></div>
+</div>
+<p>Möbius là bản mô tả <em>đầy đủ và chính xác</em> của trò chơi, nhưng có tới <span class="m">2<sup>n</sup></span> giá trị, quá nhiều để đọc khi <span class="m">n</span> lớn. Mọi chỉ số khác chỉ là những cách khác nhau để <strong>gom các viên gạch bậc cao về bậc thấp</strong> mà ta đọc được. Ví dụ, giá trị Shapley chia đều mỗi viên gạch cho các thành viên của nó:</p>
+<div class="eq">φ<sub>i</sub> = Σ<sub>T ∋ i</sub> m(T) / |T|</div>
+<p>Vĩ độ: 4 + 72/2 + 10/3 ≈ 43.3. Giờ thì thấy rõ vì sao nó “được hưởng” nhiều: nhận một nửa viên gạch vị trí. Trong thư viện, <code>ExactComputer</code> tính đúng điều này: gọi trò chơi một lần trên mọi liên minh, rồi suy ra mọi chỉ số; <code>MoebiusConverter</code> chuyển đổi giữa các chỉ số qua Möbius.</p>
+</section>
+
+<!-- 6 -->
+<section id="c6">
+<h2><span class="n">6</span>Họ chỉ số tương tác</h2>
+<p>Khi chọn bậc tối đa <span class="m">k</span> (thường là 2: từng đặc trưng và từng cặp), câu hỏi còn lại là xử lý viên gạch bậc cao hơn <span class="m">k</span> thế nào. Mỗi chỉ số trả lời khác nhau, và đó là toàn bộ khác biệt giữa chúng:</p>
+<dl class="map">
+  <div><dt>SII<span>Shapley interaction index</span></dt><dd>Đo <em>độ mạnh</em> tương tác của một nhóm trong mọi ngữ cảnh: <span class="m">SII(S) = Σ<sub>T⊇S</sub> m(T)/(|T|−|S|+1)</span>. Mỗi tập được đo độc lập, nên tổng không bằng khoản cần chia. Dùng để hỏi “cặp này tương tác mạnh không”, không dùng để chia.</dd></div>
+  <div><dt>k-SII<span>k-Shapley values</span></dt><dd>Biến SII thành một phép chia <em>hiệu quả</em>: giữ SII ở bậc <span class="m">k</span>, rồi trừ bớt phần đã tính ở các bậc thấp hơn bằng hệ số Bernoulli. Đây là chỉ số mặc định trong ví dụ của shapiq.</dd></div>
+  <div><dt>STII<span>Shapley–Taylor</span></dt><dd>Bậc thấp hơn <span class="m">k</span> giữ nguyên Möbius; dồn <em>toàn bộ</em> tương tác bậc cao lên bậc <span class="m">k</span>, chia đều.</dd></div>
+  <div><dt>FSII<span>Faithful SII</span></dt><dd>Chọn các giá trị bậc ≤ <span class="m">k</span> sao cho tổng của chúng <em>xấp xỉ trò chơi tốt nhất</em> theo bình phương tối thiểu có trọng số Shapley. Hiệu quả.</dd></div>
+  <div><dt>BV, BII<span>Banzhaf</span></dt><dd>Như Shapley nhưng mọi liên minh có trọng số bằng nhau. Không hiệu quả; được dùng khi muốn đo độ nhạy hơn là chia công.</dd></div>
+</dl>
+<p>Cả ba chỉ số hiệu quả (k-SII, STII, FSII) <strong>trùng nhau</strong> trên mọi tương tác có tối đa <span class="m">k</span> người chơi và trùng với Möbius ở đó. Chúng chỉ khác nhau ở cách “tóm tắt” những gì bậc <span class="m">k</span> không thể hiện được. Thử điều chỉnh các viên gạch:</p>
+<div class="fig">
+  <h4>Phòng thí nghiệm chỉ số</h4>
+  <p class="sub">Kéo các viên gạch Möbius của căn nhà. Bảng tính lại mọi chỉ số ngay lập tức. Đỏ là dương, xanh là âm, đúng quy ước màu của shapiq.</p>
+  <div class="ctl" role="group" aria-label="Trò chơi mẫu">
+    <span class="lbl">Mẫu:</span>
+    <button class="btn" data-preset="house" aria-pressed="true">Nhà gần San Francisco</button>
+    <button class="btn" data-preset="additive">Thuần cộng tính</button>
+    <button class="btn" data-preset="triple">Chỉ có bộ ba</button>
+    <button class="btn" data-preset="redund">Hai đặc trưng thay thế</button>
+  </div>
+  <div class="sliders" id="sliders"></div>
+  <div class="ctl" role="group" aria-label="Bậc tối đa">
+    <span class="lbl">Bậc tối đa k:</span>
+    <button class="btn" data-k="1">1</button>
+    <button class="btn" data-k="2" aria-pressed="true">2</button>
+    <button class="btn" data-k="3">3</button>
+  </div>
+  <div class="scroll"><table class="t ix" id="labTable"></table></div>
+  <p class="cap" id="labCap"></p>
+</div>
+<p>Vài điều đáng thử:</p>
+<ul>
+  <li>Chọn <strong>Thuần cộng tính</strong>: mọi chỉ số trùng nhau và mọi cặp bằng 0. Khi mô hình không có tương tác, SHAP đã kể đủ câu chuyện.</li>
+  <li>Chọn <strong>Chỉ có bộ ba</strong> với <span class="m">k = 2</span>: không chỉ số bậc 2 nào thể hiện được bộ ba “nguyên vẹn”, mỗi chỉ số chia nó một kiểu. k-SII và FSII còn tạo ra giá trị đơn lẻ <em>âm</em> để bù lại phần đã ghi quá tay cho các cặp. Đây không phải lỗi; đó là cái giá của việc nén một hiệu ứng bậc 3 vào bậc 2.</li>
+  <li>Đặt <span class="m">k = 3</span>: k-SII, STII, FSII đều trở thành chính Möbius. Bậc càng cao, giải thích càng trung thực nhưng càng nhiều số để đọc.</li>
+</ul>
+<p>Tiên đề cũng mở rộng sang tương tác. Ngoài hiệu quả, đối xứng, tuyến tính, các chỉ số tương tác còn được đặc trưng bởi tiên đề “người vô dụng” mở rộng (nhóm chứa người vô dụng thì tương tác bằng 0) và các tiên đề riêng: SII bởi tiên đề đệ quy, STII bởi tiên đề tương tác ở bậc cao nhất, FSII bởi tính trung thực theo bình phương tối thiểu. Chọn chỉ số là chọn tiên đề mình cần.</p>
+</section>
+
+<!-- 7 -->
+<section id="c7">
+<h2><span class="n">7</span>Kiểm chứng với ví dụ trong tài liệu</h2>
+<p>Ví dụ “A Tour of the Interaction Indices” của shapiq dựng một trò chơi 8 người chơi có cấu trúc biết trước: <strong>A, B bổ trợ</strong> (mỗi người 1, cùng nhau 3), <strong>C, D thay thế</strong> (một trong hai là đủ để được 1), và <strong>E, F, G, H là một đội</strong> chỉ được 2 khi đủ cả bốn. Möbius của trò chơi chỉ có 7 viên gạch khác 0: m(A)=m(B)=m(C)=m(D)=1, m(AB)=1, m(CD)=−1, m(EFGH)=2. Bảng dưới được tính trực tiếp trong trang này bằng đúng các công thức Möbius ở chương 6, và khớp với các con số tài liệu công bố.</p>
+<div class="fig">
+  <h4>Tám chỉ số của cùng một trò chơi, k = 2</h4>
+  <div class="scroll"><table class="t ix" id="docTable"></table></div>
+  <p class="cap">Ô trống: chỉ số đó không mô tả tương tác cỡ ấy. Cột cuối là tổng mọi giá trị bậc ≥ 1, so với ν(N) − ν(∅) = 6. Đội bốn người chỉ có ở hàng Möbius; mọi chỉ số bậc 2 phải phân tán nó ra các thành viên và 6 cặp.</p>
+</div>
+<p>Đọc bảng theo từng phần:</p>
+<ul>
+  <li><strong>Bổ trợ, dư thừa</strong>: mọi chỉ số bậc 2 đặt +1 lên AB và −1 lên CD. Chúng khác nhau ở người chơi đơn: SII cho A 1.5 (hiệu ứng riêng cộng nửa phần bổ trợ), còn k-SII, STII, FSII cho A đúng 1 vì phần bổ trợ đã nằm trên cặp.</li>
+  <li><strong>Đội bốn người</strong>: SV chia đều 0.5 mỗi người; STII chia 2/6 cho mỗi cặp; k-SII đặt 2/3 lên mỗi cặp rồi trừ 1/2 ở mỗi người; FSII đặt 0.6 và −0.4.</li>
+  <li><strong>Hiệu quả</strong>: Möbius, SV, k-SII, STII, FSII cộng lại đúng 6. SII vượt lên 10 vì đo các cặp <em>thêm vào</em> chứ không <em>thay cho</em> người chơi đơn; Banzhaf thiếu.</li>
+</ul>
+</section>
+
+<!-- 8 -->
+<section id="c8">
+<h2><span class="n">8</span>Tính toán: vì sao khó, và SHAP-IQ làm gì</h2>
+<p>Mọi công thức ở trên cần <span class="m">ν(S)</span> trên mọi liên minh. Mỗi giá trị là một (hoặc nhiều, khi imputer lấy trung bình trên dữ liệu nền) lần gọi mô hình.</p>
+<div class="fig">
+  <div class="rangewrap">
+    <label for="nRange">Số đặc trưng n</label>
+    <input type="range" id="nRange" min="3" max="60" value="20">
+    <output id="nOut">20</output>
+  </div>
+  <div class="bigcount" id="nCount"></div>
+  <p class="note" id="nTime" style="margin:0"></p>
+</div>
+<p>Có hai lối thoát. Với một số họ mô hình, cấu trúc cho phép tính <strong>chính xác</strong> mà không duyệt hết liên minh: TreeSHAP-IQ cho cây và ensemble cây (scikit-learn, XGBoost, LightGBM, CatBoost), cùng các thuật toán riêng cho láng giềng gần và mô hình kernel. Với mọi mô hình khác, ta <strong>xấp xỉ</strong> với một ngân sách (budget) số lần gọi <span class="m">ν</span>.</p>
+<h3>Ý tưởng cốt lõi của SHAP-IQ</h3>
+<p>Viết lại SII (và rộng hơn, mọi chỉ số tương tác “cardinal”) như một tổng có trọng số trên <em>các liên minh</em> thay vì trên các đạo hàm:</p>
+<div class="eq"><span class="lab">Biểu diễn mà SHAP-IQ khai thác</span>
+I(S) = Σ<sub>T ⊆ N</sub> ν(T) · γ<sub>|S|</sub>( |T|, |T ∩ S| )</div>
+<p>Điểm mấu chốt: trọng số <span class="m">γ</span> chỉ phụ thuộc vào <em>kích thước</em> của <span class="m">T</span> và <em>số phần tử chung</em> với <span class="m">S</span>. Vì vậy một lần gọi mô hình trên liên minh <span class="m">T</span> cập nhật được <strong>mọi</strong> tương tác <span class="m">S</span> cùng lúc, bất kể bậc. Các phương pháp cũ (như permutation sampling cho SII) phải dựng riêng đạo hàm cho từng cặp và lãng phí phần lớn số lần gọi.</p>
+<p>Từ đó SHAP-IQ là một ước lượng Monte Carlo:</p>
+<ol>
+  <li><strong>Tính chính xác hai đầu</strong>. Liên minh rất nhỏ và rất lớn (kích thước 0, 1, n−1, n, …) ít về số lượng nhưng mang trọng số lớn. Nếu ngân sách cho phép, duyệt hết chúng từ ngoài vào trong.</li>
+  <li><strong>Lấy mẫu phần giữa</strong>. Chọn kích thước theo phân bố kiểu kernel Shapley, chọn ngẫu nhiên một liên minh có kích thước đó, gọi mô hình, rồi cộng <span class="m">ν(T)·γ</span> chia cho xác suất lấy mẫu vào <em>mọi</em> ước lượng.</li>
+  <li><strong>Chuyển đổi chỉ số</strong>. Từ SII ước lượng được, suy ra k-SII bằng hệ số Bernoulli.</li>
+</ol>
+<p>Kết quả là một bộ ước lượng không chệch, hội tụ khi ngân sách tăng, và với bậc 1 nó trùng với Unbiased KernelSHAP. Thử trên trò chơi 8 người chơi trong ví dụ <code>SHAPIQ</code> của tài liệu: một tổ hợp tuyến tính với trọng số 0.4, 0.3, 0.2, 0.1, 0.05, −0.1, −0.2, −0.3 cộng thêm tương tác 0.5 giữa x0 và x1. Đáp án k-SII chính xác vì thế rất gọn: mỗi x<sub>i</sub> nhận đúng trọng số của nó, cặp (x0, x1) nhận 0.5, mọi cặp khác bằng 0.</p>
+<div class="fig">
+  <h4>SHAP-IQ chạy ngay trong trang</h4>
+  <div class="rangewrap">
+    <label for="bRange">Ngân sách</label>
+    <input type="range" id="bRange" min="10" max="256" value="60">
+    <output id="bOut">60</output>
+  </div>
+  <div class="ctl" style="margin-top:10px">
+    <button class="btn ghost" id="resample">Lấy mẫu lại</button>
+    <span class="lbl" style="margin-left:6px">Mốc đáng thử:</span>
+    <button class="btn" data-b="30">30</button><button class="btn" data-b="100">100</button><button class="btn" data-b="200">200</button><button class="btn" data-b="256">256</button>
+  </div>
+  <div class="sizes" id="sizes" aria-label="Số liên minh theo kích thước"></div>
+  <div class="legend"><span><i style="background:var(--plat)"></i>kích thước được tính đủ</span><span><i style="background:repeating-linear-gradient(135deg,var(--plon) 0 3px,transparent 3px 6px);border:1px solid var(--plon)"></i>kích thước được lấy mẫu</span><span>Chiều cao cột: số liên minh có kích thước đó, C(8, t)</span></div>
+  <div class="two">
+    <div>
+      <h4>Từng đặc trưng (k-SII)</h4>
+      <p class="sub">Thanh màu: ước lượng. Vạch đậm: giá trị chính xác.</p>
+      <div class="bars" id="estSingles"></div>
+    </div>
+    <div>
+      <h4>Từng cặp (k-SII)</h4>
+      <p class="sub">Chỉ cặp (x0, x1) thật sự khác 0. Mọi màu khác là nhiễu lấy mẫu.</p>
+      <div class="tri" id="estPairs"></div>
+    </div>
+  </div>
+  <p class="stat" id="estStat"></p>
+</div>
+<p>Ở ngân sách 256 = 2<sup>8</sup>, mọi kích thước đều được duyệt đủ và ước lượng trở thành chính xác. Ở ngân sách nhỏ, chỉ các “vành” ngoài cùng (kích thước 0, 1, 7, 8) được tính đủ, phần giữa do mẫu ngẫu nhiên gánh, nên các cặp nhiễu rõ. Bấm “Lấy mẫu lại” vài lần để thấy ước lượng dao động quanh đáp án đúng: đó là tính không chệch. Một chi tiết đáng để ý: ngay sau khi một vành vừa được lấp đủ, phần ngân sách còn lại cho lấy mẫu rất ít, nên sai số có thể tạm nhích lên trước khi giảm tiếp. Thư viện còn nhiều bộ xấp xỉ khác cho cùng bài toán: dạng hồi quy (KernelSHAP-IQ, RegressionFSII), phân tầng (SVARM-IQ), hoán vị, và các phương pháp thưa cho hàng trăm đặc trưng (SPEX, ProxySPEX).</p>
+</section>
+
+<!-- 9 -->
+<section id="c9">
+<h2><span class="n">9</span>Dùng trên mô hình thật</h2>
+<p>Với mô hình scikit-learn, <code>shapiq.Explainer</code> tự chọn phương pháp phù hợp; với rừng ngẫu nhiên nó dùng <code>TreeExplainer</code> và tính chính xác. Phiên bản rút gọn ví dụ trên trang chủ tài liệu:</p>
+<pre><code><span class="c"># Dữ liệu California, rừng ngẫu nhiên</span>
+from sklearn.datasets import fetch_california_housing
+from sklearn.ensemble import RandomForestRegressor
+import shapiq
+
+data = fetch_california_housing()
+X, y = data.data, data.target
+model = RandomForestRegressor(n_estimators=50, max_depth=10, random_state=0).fit(X, y)
+
+<span class="c"># k-SII đến bậc 2: từng đặc trưng + từng cặp</span>
+explainer = shapiq.Explainer(model, data=X, index="k-SII", max_order=2)
+iv = explainer.explain(X[0])
+
+iv.plot_force(feature_names=data.feature_names)
+iv.plot_network(feature_names=data.feature_names)</code></pre>
+<p>Kết quả mà tài liệu in ra cho căn nhà đầu tiên (đơn vị: 100 nghìn đô; giá trị nền ν(∅) ≈ 2.07). Mỗi khoá là một tuple chỉ số cột: <code>(0,)</code> là hiệu ứng riêng của MedInc, <code>(0, 1)</code> là tương tác MedInc với HouseAge.</p>
+<div class="fig">
+  <div class="bars" id="calBars"></div>
+  <p class="cap">Thu nhập trung vị chiếm phần lớn với hiệu ứng riêng. Đáng chú ý là các cặp thu nhập với vĩ độ, kinh độ đều âm: một phần thông tin vị trí đã nằm sẵn trong thu nhập, nên khi có cả hai thì cộng gộp bị điều chỉnh xuống. Một bảng SHAP thuần sẽ chỉ cho bạn tổng đã trộn lẫn những phần này.</p>
+</div>
+<p>Với trò chơi tự định nghĩa (bất kỳ hàm nào nhận ma trận boolean các liên minh và trả về giá trị), hai lối vào chính:</p>
+<pre><code><span class="c"># Chính xác, khi n nhỏ (duyệt 2^n liên minh)</span>
+computer = shapiq.ExactComputer(game, n_players=8)
+ksii = computer(index="k-SII", order=2)
+
+<span class="c"># Xấp xỉ bằng SHAP-IQ với ngân sách 200 lần gọi</span>
+approximator = shapiq.SHAPIQ(n=8, max_order=2, index="k-SII", random_state=42)
+iv = approximator.approximate(200, game)</code></pre>
+<h3>Mấy lưu ý khi đọc kết quả cho bài toán định giá</h3>
+<ul>
+  <li><strong>Bắt đầu với <code>max_order=2</code></strong>, như tài liệu khuyên. Chỉ lên bậc cao hơn khi các cặp chưa giải thích đủ.</li>
+  <li><strong>Muốn một bảng “cộng lại ra đúng giá”</strong> để trình bày cho người thẩm định, dùng chỉ số hiệu quả (k-SII, FSII hoặc STII). Muốn hỏi “cặp nào tương tác mạnh nhất”, SII trả lời trực tiếp hơn.</li>
+  <li><strong>Giá trị đơn lẻ âm trong k-SII</strong> có thể là dấu hiệu của tương tác bậc cao bị nén xuống, không nhất thiết là “đặc trưng này làm giảm giá”. Đối chiếu với SII hoặc thử bậc 3 trước khi diễn giải.</li>
+  <li><strong>Ghi rõ imputer</strong>. Diện tích, số phòng, vị trí tương quan với nhau; lời giải thích đổi theo cách bạn “xoá” chúng.</li>
+</ul>
+</section>
+
+<!-- 10 -->
+<section id="c10">
+<h2><span class="n">10</span>Tóm tắt: chọn chỉ số theo câu hỏi</h2>
+<div class="choose">
+  <div><p class="q">Một con số cho mỗi đặc trưng</p><p class="a">SV (Shapley), hoặc BV (Banzhaf) nếu muốn đo độ nhạy thay vì chia công.</p></div>
+  <div><p class="q">Nhóm này tương tác mạnh đến đâu?</p><p class="a">SII hoặc BII. Đo trong mọi ngữ cảnh; không cộng lại thành dự đoán.</p></div>
+  <div><p class="q">Một phép chia đầy đủ có cả cặp</p><p class="a">k-SII, STII hoặc FSII đến bậc k. Giống nhau trên tương tác ≤ k, khác nhau ở cách nén phần bậc cao.</p></div>
+  <div><p class="q">Bức tranh trọn vẹn, không nén</p><p class="a">Biến đổi Möbius, khi số đặc trưng nhỏ hoặc trò chơi thưa.</p></div>
+  <div><p class="q">Tính bằng gì?</p><p class="a">Mô hình cây, KNN, kernel: thuật toán chính xác. Còn lại: bộ xấp xỉ như SHAP-IQ với ngân sách phù hợp; tăng ngân sách hoặc đặt <code>random_state</code> để kết quả ổn định và tái lập được.</p></div>
+</div>
+<p>Mạch lập luận của cả trang gói lại trong một câu: lý thuyết trò chơi cho ta định nghĩa “công bằng” bằng tiên đề; Möbius cho thấy mọi mô hình là tổng của các khối tương tác; mỗi chỉ số là một cách có nguyên tắc để kể lại các khối đó ở mức chi tiết ta đọc được; còn SHAP-IQ là cách tính chúng mà không phải hỏi mô hình <span class="m">2<sup>n</sup></span> lần.</p>
+</section>
+
+<footer>
+  <p>Nguồn và đọc thêm (tài liệu shapiq):</p>
+  <ul>
+    <li><a href="https://shapiq.readthedocs.io/en/latest/">Trang chủ shapiq</a></li>
+    <li><a href="https://shapiq.readthedocs.io/en/latest/introduction/index.html">What Are Shapley Interactions?</a></li>
+    <li><a href="https://shapiq.readthedocs.io/en/latest/auto_examples/exact_computation/plot_interaction_indices.html">A Tour of the Interaction Indices</a></li>
+    <li><a href="https://shapiq.readthedocs.io/en/latest/auto_examples/approximators/shapley_interactions/plot_shapiq_approximator.html">SHAPIQ Approximator</a></li>
+    <li><a href="https://shapiq.readthedocs.io/en/latest/references.html">Bibliography</a>: Shapley 1953; Grabisch &amp; Roubens 1999; Bordt &amp; von Luxburg 2023; Fumagalli et al. 2023; Muschalik et al. 2024.</li>
+  </ul>
+  <p>Căn nhà ba đặc trưng là mô hình minh hoạ với số liệu giả định. Bảng tám chỉ số và bộ ước lượng SHAP-IQ được tính bằng JavaScript ngay trong trang.</p>
+</footer>
+</main>
+</div>
+
+<script>
+// MATH-START
+const FACT=[1];for(let i=1;i<=70;i++)FACT[i]=FACT[i-1]*i;
+const fact=n=>FACT[n];
+function binom(n,k){if(k<0||k>n)return 0;let r=1;for(let i=1;i<=k;i++)r=r*(n-k+i)/i;return Math.round(r)}
+function pc(x){let c=0;while(x){x&=x-1;c++}return c}
+const BERN=[1,-1/2,1/6,0,-1/30,0,1/42];
+// m: Map mask -> value (mask 0 = baseline)
+function nuOf(m,S){let s=0;for(const [T,v] of m){if((T&S)===T)s+=v}return s}
+function idxSV(m,S){if(pc(S)!==1)return null;let s=0;for(const [T,v] of m){if(T&&(T&S)===S)s+=v/pc(T)}return s}
+function idxBV(m,S){if(pc(S)!==1)return null;let s=0;for(const [T,v] of m){if(T&&(T&S)===S)s+=v/Math.pow(2,pc(T)-1)}return s}
+function idxSII(m,S,k){const s=pc(S);if(s<1||s>k)return null;let r=0;for(const [T,v] of m){if((T&S)===S)r+=v/(pc(T)-s+1)}return r}
+function idxBII(m,S,k){const s=pc(S);if(s<1||s>k)return null;let r=0;for(const [T,v] of m){if((T&S)===S)r+=v/Math.pow(2,pc(T)-s)}return r}
+function idxSTII(m,S,k){const s=pc(S);if(s<1||s>k)return null;if(s<k)return m.get(S)||0;let r=0;for(const [T,v] of m){if((T&S)===S)r+=v/binom(pc(T),k)}return r}
+function idxKSII(m,S,k){const s=pc(S);if(s<1||s>k)return null;let r=0;for(const [T,v] of m){if((T&S)!==S)continue;const t=pc(T);let w=0;for(let l=0;l<=k-s&&l<=t-s;l++)w+=BERN[l]*binom(t-s,l)/(t-s-l+1);r+=v*w}return r}
+function idxFSII(m,S,k){const s=pc(S);if(s<1||s>k)return null;let r=0;for(const [T,v] of m){if((T&S)!==S)continue;const t=pc(T);if(t<=k){if(T===S)r+=v}else{r+=v*Math.pow(-1,k-s)*(s/(k+s))*binom(k,s)*binom(t-1,k)/binom(t+k-1,k+s)}}return r}
+function idxMob(m,S){return pc(S)>=1?(m.get(S)||0):null}
+const INDICES=[
+  {id:'Möbius',f:(m,S,k,n)=>idxMob(m,S),ord:(k,n)=>n},
+  {id:'SV',f:(m,S)=>idxSV(m,S),ord:()=>1},
+  {id:'BV',f:(m,S)=>idxBV(m,S),ord:()=>1},
+  {id:'SII',f:(m,S,k)=>idxSII(m,S,k),ord:k=>k},
+  {id:'BII',f:(m,S,k)=>idxBII(m,S,k),ord:k=>k},
+  {id:'k-SII',f:(m,S,k)=>idxKSII(m,S,k),ord:k=>k},
+  {id:'STII',f:(m,S,k)=>idxSTII(m,S,k),ord:k=>k},
+  {id:'FSII',f:(m,S,k)=>idxFSII(m,S,k),ord:k=>k},
+];
+function indexSum(ix,m,k,n){let s=0;const o=ix.ord(k,n);for(let S=1;S<(1<<n);S++){if(pc(S)<=o){const v=ix.f(m,S,k,n);if(v!==null)s+=v}}return s}
+// SHAP-IQ style estimator for SII (orders 1..2) + conversion to k-SII
+function gammaSII(n,s,u,l){return Math.pow(-1,s-l)*fact(n-u+l-s)*fact(u-l)/fact(n-s+1)}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function randomSubset(n,u,rng){const idx=[...Array(n).keys()];for(let i=n-1;i>0;i--){const j=Math.floor(rng()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]]}let mk=0;for(let i=0;i<u;i++)mk|=1<<idx[i];return mk}
+function shapiqEstimate(n,game,budget,rng){
+  const targets=[];for(let S=1;S<(1<<n);S++){const s=pc(S);if(s<=2)targets.push(S)}
+  const est=new Map(targets.map(S=>[S,0]));
+  const base=game(0);
+  const exact=new Set();let used=0,lo=0,hi=n;
+  while(lo<=hi){const cost=lo===hi?binom(n,lo):binom(n,lo)+binom(n,hi);const last=lo+1>hi-1;if(used+cost<budget||(last&&used+cost<=budget)){exact.add(lo);exact.add(hi);used+=cost;lo++;hi--}else break}
+  for(let U=0;U<(1<<n);U++){const u=pc(U);if(!exact.has(u))continue;const v=game(U)-base;for(const S of targets){est.set(S,est.get(S)+v*gammaSII(n,pc(S),u,pc(U&S)))}}
+  const rem=[];for(let u=0;u<=n;u++)if(!exact.has(u))rem.push(u);
+  const M=Math.max(0,budget-used);
+  if(M>0&&rem.length){
+    const w=rem.map(u=>(u===0||u===n)?1:1/(u*(n-u)));const W=w.reduce((a,b)=>a+b,0);const q=w.map(x=>x/W);
+    for(let it=0;it<M;it++){let r=rng(),i=0;while(i<q.length-1&&r>q[i]){r-=q[i];i++}const u=rem[i];const U=randomSubset(n,u,rng);const v=game(U)-base;const wt=binom(n,u)/q[i]/M;for(const S of targets){est.set(S,est.get(S)+v*wt*gammaSII(n,pc(S),u,pc(U&S)))}}
+  }
+  // SII -> k-SII (k=2)
+  const ksii=new Map();
+  for(const S of targets){if(pc(S)===2)ksii.set(S,est.get(S));else{let r=est.get(S);for(const P of targets){if(pc(P)===2&&(P&S)===S)r+=BERN[1]*est.get(P)}ksii.set(S,r)}}
+  return {sii:est,ksii,exactSizes:[...exact].sort((a,b)=>a-b),sampledSizes:rem,used,M:rem.length?M:0}
+}
+// MATH-END
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const P=[{k:'I',name:'Thu nhập',sh:'TN'},{k:'La',name:'Vĩ độ',sh:'VĐ'},{k:'Lo',name:'Kinh độ',sh:'KĐ'}];
+const HOUSE={1:120,2:4,4:60,3:0,5:-12,6:72,7:10};
+function houseMap(h){const m=new Map([[0,200]]);for(const k in h)m.set(+k,h[k]);return m}
+const HM=houseMap(HOUSE);
+const nu=S=>nuOf(HM,S);
+const setName=S=>{const a=P.filter((p,i)=>S&(1<<i)).map(p=>p.name);return a.length?'{'+a.join(', ')+'}':'∅'};
+const fmt=(v,d)=>{if(v===null||v===undefined)return '';if(Math.abs(v)<1e-9)v=0;const dd=d!==undefined?d:(Math.abs(v)>=10?1:2);let s=v.toFixed(dd);if(dd>0)s=s.replace(/\.?0+$/,'');if(parseFloat(s)===0)s='0';return s.replace('-','−')};
+const cellBg=(v,max)=>{if(v===null||Math.abs(v)<1e-9||!max)return 'transparent';const a=Math.min(1,Math.abs(v)/max);const pct=Math.round(10+a*55);return `color-mix(in srgb, var(${v>0?'--pos':'--neg'}) ${pct}%, transparent)`};
+
+/* HERO */
+let heroS=7;
+(function(){
+  const box=$('#heroTokens');
+  P.forEach((p,i)=>{const b=document.createElement('button');b.className='tokbtn p-'+p.k;b.setAttribute('aria-pressed','true');b.innerHTML=`<span class="disc">${p.sh}</span>${p.name}`;b.onclick=()=>{heroS^=(1<<i);b.setAttribute('aria-pressed',String(!!(heroS&(1<<i))));heroUpdate()};box.appendChild(b)});
+  const strip=$('#heroStrip');
+  const order=[0,1,2,4,3,5,6,7];
+  order.forEach(S=>{const d=document.createElement('div');d.dataset.s=S;d.innerHTML=`<span class="pips">${P.map((p,i)=>S&(1<<i)?`<i class="p-${p.k}"></i>`:'').join('')}</span><b>${nu(S)}</b>${S===0?'không biết gì':P.filter((p,i)=>S&(1<<i)).map(p=>p.sh).join('+')}`;d.style.cursor='pointer';d.onclick=()=>{heroS=S;$$('#heroTokens .tokbtn').forEach((b,i)=>b.setAttribute('aria-pressed',String(!!(S&(1<<i)))));heroUpdate()};strip.appendChild(d)});
+  let shown=454,raf;
+  window.heroUpdate=function(){
+    const target=nu(heroS);
+    $('#heroWho').innerHTML=`ν(${setName(heroS)}) · nền ν(∅) = 200`.replace(' · ',' &nbsp;&nbsp; ');
+    $$('#heroStrip div').forEach(d=>d.classList.toggle('cur',+d.dataset.s===heroS));
+    cancelAnimationFrame(raf);
+    if(reduce){shown=target;$('#heroVal').textContent=target;return}
+    const from=shown,t0=performance.now();
+    const step=t=>{const p=Math.min(1,(t-t0)/380),e=1-Math.pow(1-p,3);shown=Math.round(from+(target-from)*e);$('#heroVal').textContent=shown;if(p<1)raf=requestAnimationFrame(step)};
+    raf=requestAnimationFrame(step);
+  };
+  heroUpdate();
+})();
+
+/* IMPUTER SCATTER */
+(function(){
+  const svg=$('#scatter'),W=520,H=330,L=44,R=14,T=14,B=40;
+  const rng=mulberry32(7);
+  const band=u=>0.86-0.72*u;
+  const pts=[];for(let i=0;i<170;i++){const u=Math.pow(rng(),0.9);const g=(rng()+rng()+rng()-1.5)*0.07;pts.push([u,Math.min(.98,Math.max(.02,band(u)+g))])}
+  const x0=[0.16,band(0.16)+0.02];
+  const X=u=>L+u*(W-L-R),Y=v=>T+(1-v)*(H-T-B);
+  const off=(u,v)=>Math.abs(v-band(u))>0.13;
+  let mode='marginal';
+  function draw(){
+    const r2=mulberry32(11);
+    let reps=[];
+    if(mode==='baseline'){const mv=pts.reduce((a,p)=>a+p[1],0)/pts.length;reps=[[x0[0],mv]]}
+    else if(mode==='marginal'){for(let i=0;i<22;i++){const p=pts[Math.floor(r2()*pts.length)];reps.push([x0[0],p[1]])}}
+    else{const near=pts.filter(p=>Math.abs(p[0]-x0[0])<0.07);for(let i=0;i<22;i++){const p=near[Math.floor(r2()*near.length)];reps.push([x0[0],p[1]])}}
+    const nOff=reps.filter(p=>off(p[0],p[1])).length;
+    let s=`<rect x="${L}" y="${T}" width="${W-L-R}" height="${H-T-B}" fill="none" stroke="var(--rule)"/>`;
+    s+=`<path d="M${X(0)},${Y(band(0)+.13)} L${X(1)},${Y(band(1)+.13)} L${X(1)},${Y(band(1)-.13)} L${X(0)},${Y(band(0)-.13)}Z" fill="var(--sunk)" opacity=".8"/>`;
+    s+=`<text class="ax" x="${X(.72)}" y="${Y(band(.72)+.17)}">dải có nhà thật</text>`;
+    s+=`<text class="ax" x="${X(.62)}" y="${Y(.08)}">biển (không có nhà)</text>`;
+    pts.forEach(p=>s+=`<circle cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="2.6" fill="var(--ink2)" opacity=".38"/>`);
+    s+=`<line x1="${X(x0[0])}" x2="${X(x0[0])}" y1="${T}" y2="${H-B}" stroke="var(--plon)" stroke-dasharray="4 4" opacity=".6"/>`;
+    reps.forEach((p,i)=>{const jit=(i%5-2)*3;const o=off(p[0],p[1]);s+=`<circle cx="${(X(p[0])+jit).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="5" fill="${o?'none':'var(--plat)'}" stroke="${o?'var(--pos)':'var(--plat)'}" stroke-width="2"/>`});
+    s+=`<circle cx="${X(x0[0])}" cy="${Y(x0[1])}" r="7.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2.5"/>`;
+    s+=`<text class="ax" x="${X(x0[0])+12}" y="${Y(x0[1])-10}" style="fill:var(--ink);font-weight:700">căn nhà cần giải thích</text>`;
+    s+=`<text class="ax" x="${(L+W-R)/2}" y="${H-10}" text-anchor="middle">Kinh độ (tây → đông)</text>`;
+    s+=`<text class="ax" transform="translate(14 ${(T+H-B)/2}) rotate(-90)" text-anchor="middle">Vĩ độ (nam → bắc)</text>`;
+    svg.innerHTML=s;
+    const caps={
+      baseline:`Baseline thay vĩ độ bằng một giá trị trung bình duy nhất. ${nOff?'Điểm thay thế rơi ra ngoài dải có nhà thật: mô hình phải dự đoán cho một vị trí không tồn tại.':'Lần này điểm trung bình rơi vào dải, nhưng đó là may mắn chứ không được bảo đảm.'}`,
+      marginal:`Marginal giữ kinh độ, lấy vĩ độ của các căn ngẫu nhiên: các điểm thay thế trải dọc cả đường thẳng đứng. ${nOff} trên ${reps.length} điểm (vòng đỏ rỗng) nằm ngoài dải có nhà, tức là những “căn nhà” mô hình chưa từng thấy.`,
+      conditional:`Conditional chỉ lấy vĩ độ từ các căn có kinh độ gần giống. ${nOff===0?'Mọi điểm thay thế':'Gần như mọi điểm thay thế'} đều nằm trong dải có nhà thật, nên ν({Kinh độ}) phản ánh dữ liệu thật hơn, đổi lại cần mô hình hoá phân phối có điều kiện.`
+    };
+    $('#impCap').textContent=caps[mode];
+  }
+  $$('[data-imp]').forEach(b=>b.onclick=()=>{mode=b.dataset.imp;$$('[data-imp]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));draw()});
+  draw();
+})();
+
+/* PERMUTATIONS */
+(function(){
+  const perms=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+  const contrib=perm=>{let S=0;const c=[0,0,0];perm.forEach(i=>{const v0=nu(S);S|=1<<i;c[i]=nu(S)-v0});return c};
+  const seen=new Set();let cur=-1;
+  const box=$('#perms');
+  perms.forEach((pm,j)=>{const b=document.createElement('button');b.className='perm';b.setAttribute('aria-pressed','false');b.setAttribute('aria-label','Thứ tự '+pm.map(i=>P[i].name).join(', '));b.innerHTML=pm.map((i,x)=>`<i class="p-${P[i].k}">${P[i].sh.slice(0,1)}</i>${x<2?'<span class="ar">›</span>':''}`).join('');b.onclick=()=>{cur=j;seen.add(j);render()};box.appendChild(b)});
+  const exact=[0,1,2].map(i=>idxSV(HM,1<<i));
+  function render(){
+    $$('#perms .perm').forEach((b,j)=>{b.setAttribute('aria-pressed',String(j===cur));b.classList.toggle('seen',seen.has(j)&&j!==cur)});
+    let st='';
+    if(cur<0){st=`<div class="row"><div class="seg base" style="flex-grow:200">nền 200</div><div class="seg base" style="flex-grow:254;opacity:.5">chọn một thứ tự</div></div>`}
+    else{const pm=perms[cur],c=contrib(pm);st=`<div class="row"><div class="seg base" style="flex-grow:200">nền 200</div>${pm.map(i=>`<div class="seg p-${P[i].k}" style="flex-grow:${Math.max(c[i],0.001)}" title="${P[i].name}: +${c[i]}">${c[i]>=20?P[i].sh+' +'+c[i]:''}</div>`).join('')}</div>`}
+    st+=`<div class="axis"><span>0</span><span>200</span><span>454</span></div>`;
+    $('#stair').innerHTML=st;
+    const c=cur>=0?contrib(perms[cur]):null;
+    const avg=[0,1,2].map(i=>seen.size?[...seen].reduce((a,j)=>a+contrib(perms[j])[i],0)/seen.size:null);
+    let t=`<thead><tr><th>Người chơi</th><th>Đóng góp ở thứ tự đang chọn</th><th>Trung bình ${seen.size}/6 thứ tự đã xem</th><th>Shapley chính xác</th></tr></thead><tbody>`;
+    P.forEach((p,i)=>{t+=`<tr><td><span class="chip p-${p.k}"><span class="dot"></span>${p.name}</span></td><td>${c?'+'+c[i]:'–'}</td><td class="${seen.size===6?'hl':''}">${avg[i]===null?'–':fmt(avg[i],1)}</td><td>${fmt(exact[i],1)}</td></tr>`});
+    t+=`<tr><td>Tổng</td><td>${c?c.reduce((a,b)=>a+b,0):'–'}</td><td>${seen.size?fmt(avg.reduce((a,b)=>a+b,0),1):'–'}</td><td>${fmt(exact.reduce((a,b)=>a+b,0),1)}</td></tr></tbody>`;
+    $('#permTable').innerHTML=t;
+  }
+  $('#permAll').onclick=()=>{perms.forEach((_,j)=>seen.add(j));cur=5;render()};
+  $('#permReset').onclick=()=>{seen.clear();cur=-1;render()};
+  render();
+})();
+
+/* BARS helper */
+function bars(el,items,opt={}){
+  const max=opt.max||Math.max(...items.map(d=>Math.max(Math.abs(d.v),Math.abs(d.ex??0))),1e-9);
+  const lo=opt.neg===false?0:-max,span=max-lo;const pos=v=>(v-lo)/span*100;
+  el.innerHTML=items.map(d=>{const a=pos(Math.min(0,d.v)),b=pos(Math.max(0,d.v));return `<div class="bar"><span class="nm">${d.label}</span><span class="tr">${lo<0?`<span class="z" style="left:${pos(0)}%"></span>`:''}<span class="f" style="left:${a}%;width:${b-a}%;background:${d.color||(d.v>=0?'var(--pos)':'var(--neg)')}"></span>${d.ex!==undefined?`<span class="ex" style="left:calc(${pos(d.ex)}% - 1.5px)"></span>`:''}</span><span class="v">${fmt(d.v,opt.dec)}</span></div>`}).join('');
+}
+bars($('#svBars'),P.map((p,i)=>({label:`<span class="chip p-${p.k}"><span class="dot"></span>${p.name}</span>`,v:idxSV(HM,1<<i),color:{I:'var(--pinc)',La:'var(--plat)',Lo:'var(--plon)'}[p.k]})),{neg:false,dec:1});
+
+/* DERIVATIVE */
+(function(){
+  const pairs=[[1,2],[0,2],[0,1]];let pi=0,ctx=0;
+  function render(){
+    const [i,j]=pairs[pi],third=[0,1,2].find(x=>x!==i&&x!==j);
+    $('#pairBtns').innerHTML=pairs.map((p,x)=>`<button class="btn" data-pi="${x}" aria-pressed="${x===pi}">${P[p[0]].name} × ${P[p[1]].name}</button>`).join(' ');
+    $('#ctxBtns').innerHTML=`<button class="btn" data-ctx="0" aria-pressed="${ctx===0}">∅</button> <button class="btn" data-ctx="1" aria-pressed="${ctx===1}">{${P[third].name}}</button>`;
+    const T=ctx?1<<third:0,a=nu(T|1<<i|1<<j),b=nu(T|1<<i),c=nu(T|1<<j),d=nu(T),D=a-b-c+d;
+    const lab=S=>setName(S);
+    const col=D>0?'var(--pos)':D<0?'var(--neg)':'var(--ink2)';
+    $('#deriv').innerHTML=`<div class="cell"><b>${a}</b><span>ν(${lab(T|1<<i|1<<j)})</span></div><span class="op">−</span><div class="cell"><b>${b}</b><span>ν(${lab(T|1<<i)})</span></div><span class="op">−</span><div class="cell"><b>${c}</b><span>ν(${lab(T|1<<j)})</span></div><span class="op">+</span><div class="cell"><b>${d}</b><span>ν(${lab(T)})</span></div><span class="op">=</span><div class="res" style="color:${col}"><b>${fmt(D,0)}</b><span>${D>0?'bổ trợ':D<0?'dư thừa':'không tương tác'}</span></div>`;
+    const S=1<<i|1<<j,D0=nu(S)-nu(1<<i)-nu(1<<j)+nu(0),D1=nu(7)-nu(7^1<<j)-nu(7^1<<i)+nu(1<<third);
+    $('#derivCap').innerHTML=`Hai ngữ cảnh cho Δ = ${fmt(D0,0)} và ${fmt(D1,0)}. Với ba người chơi, SII lấy trung bình hai ngữ cảnh với trọng số ½ và ½, nên SII(${P[i].name}, ${P[j].name}) = ${fmt(idxSII(HM,S,2),1)}.`;
+    $$('#pairBtns .btn').forEach(b=>b.onclick=()=>{pi=+b.dataset.pi;render()});
+    $$('#ctxBtns .btn').forEach(b=>b.onclick=()=>{ctx=+b.dataset.ctx;render()});
+  }
+  render();
+})();
+
+/* LATTICE */
+(function(){
+  const svg=$('#lattice');
+  const pos={0:[300,290],1:[120,205],2:[300,205],4:[480,205],3:[120,120],5:[300,120],6:[480,120],7:[300,38]};
+  let sel=7,mode='nu';
+  const short=S=>S===0?'∅':P.filter((p,i)=>S&(1<<i)).map(p=>p.sh).join('+');
+  function render(){
+    let s='';
+    const keys=Object.keys(pos).map(Number);
+    keys.forEach(A=>keys.forEach(Bm=>{if(A!==Bm&&(A&Bm)===A&&pc(Bm)-pc(A)===1){const on=(Bm&sel)===Bm;s+=`<line class="${on?'on':''}" x1="${pos[A][0]}" y1="${pos[A][1]}" x2="${pos[Bm][0]}" y2="${pos[Bm][1]}"/>`}}));
+    keys.forEach(S=>{const [x,y]=pos[S];const isSub=(S&sel)===S&&S!==sel;const val=mode==='nu'?nu(S):(HM.get(S)||0);s+=`<g class="node ${S===sel?'sel':isSub?'sub':''}" tabindex="0" role="button" aria-label="Liên minh ${setName(S)}, ν = ${nu(S)}, m = ${HM.get(S)||0}" data-s="${S}" transform="translate(${x-62} ${y-24})"><rect width="124" height="48" rx="10"/><text class="val" x="62" y="22" text-anchor="middle">${mode==='m'&&val>0&&S!==0?'+':''}${fmt(val,0)}</text><text class="nm" x="62" y="38" text-anchor="middle">${short(S)}</text></g>`});
+    svg.innerHTML=s;
+    const subs=keys.filter(T=>(T&sel)===T).sort((a,b)=>pc(a)-pc(b)||a-b);
+    $('#latSum').innerHTML=`ν(${setName(sel)}) = ${subs.map(T=>`m(${short(T)})`).join(' + ')}<br><b>${nu(sel)}</b> = ${subs.map(T=>fmt(HM.get(T)||0,0)).join(' + ').replace(/\+ −/g,'− ')}`;
+    $$('#lattice .node').forEach(g=>{g.onclick=()=>{sel=+g.dataset.s;render();svg.querySelector(`[data-s="${sel}"]`).focus()};g.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();g.onclick()}}});
+  }
+  $$('[data-latmode]').forEach(b=>b.onclick=()=>{mode=b.dataset.latmode;$$('[data-latmode]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));render()});
+  render();
+})();
+
+/* INDEX TABLE */
+function indexTable(el,n,m,k,cols,colLabel,groups){
+  const target=nuOf(m,(1<<n)-1)-(m.get(0)||0);
+  const rows=INDICES.map(ix=>{const o=ix.ord(k,n);return {id:ix.id,vals:cols.map(S=>pc(S)<=o?ix.f(m,S,k,n):null),sum:indexSum(ix,m,k,n)}});
+  const max=Math.max(...rows.flatMap(r=>r.vals.filter(v=>v!==null).map(Math.abs)),1e-9);
+  let h='<thead>';
+  if(groups){h+=`<tr><th></th>${groups.map(g=>`<th class="grp" colspan="${g[1]}">${g[0]}</th>`).join('')}<th></th><th></th></tr>`}
+  h+=`<tr><th class="nm">Chỉ số</th>${cols.map(S=>`<th>${colLabel(S)}</th>`).join('')}<th>Tổng</th><th>Hiệu quả</th></tr></thead><tbody>`;
+  rows.forEach(r=>{const eff=Math.abs(r.sum-target)<1e-6;h+=`<tr><td class="nm">${r.id}</td>${r.vals.map(v=>v===null?'<td class="na">·</td>':`<td class="c" style="background:${cellBg(v,max)}">${fmt(v)}</td>`).join('')}<td class="sum">${fmt(r.sum)}</td><td class="${eff?'ok':'no'}">${eff?'có':'không'}</td></tr>`});
+  el.innerHTML=h+'</tbody>';
+  return target;
+}
+
+/* LAB */
+(function(){
+  const keys=[[1,'m(TN)'],[2,'m(VĐ)'],[4,'m(KĐ)'],[3,'m(TN·VĐ)'],[5,'m(TN·KĐ)'],[6,'m(VĐ·KĐ)'],[7,'m(TN·VĐ·KĐ)']];
+  const presets={house:{...HOUSE},additive:{1:120,2:40,4:94,3:0,5:0,6:0,7:0},triple:{1:0,2:0,4:0,3:0,5:0,6:0,7:60},redund:{1:120,2:70,4:70,3:0,5:0,6:-56,7:0}};
+  let g={...HOUSE},k=2;
+  const sl=$('#sliders');
+  sl.innerHTML=keys.map(([S,l])=>`<label>${l}<output id="o${S}"></output><input type="range" min="-100" max="150" step="2" data-s="${S}" aria-label="${l}"></label>`).join('');
+  const short=S=>P.filter((p,i)=>S&(1<<i)).map(p=>p.sh).join('·');
+  function sync(){keys.forEach(([S])=>{const inp=sl.querySelector(`[data-s="${S}"]`);inp.value=g[S];$('#o'+S).textContent=fmt(g[S],0)})}
+  function render(){
+    const m=houseMap(g);
+    const cols=[1,2,4,3,5,6,7];
+    const target=indexTable($('#labTable'),3,m,k,cols,short);
+    const tri=g[7];
+    let cap=`Khoản cần chia ν(N) − ν(∅) = ${fmt(target,0)}. `;
+    if(k===1)cap+='Với k = 1, mọi chỉ số chỉ có một giá trị mỗi đặc trưng; k-SII, STII, FSII và SII đều trùng giá trị Shapley.';
+    else if(k===3)cap+='Với k = 3 = n, không còn gì phải nén: k-SII, STII, FSII trùng hàng Möbius.';
+    else cap+=tri?`Viên gạch bộ ba (${fmt(tri,0)}) không có chỗ ở bậc 2. SII cộng ${fmt(tri/2,1)} vào mỗi cặp và ${fmt(tri/3,1)} vào mỗi đơn lẻ, nên tổng vượt. STII chia đều ${fmt(tri/3,1)} cho 3 cặp. k-SII đặt ${fmt(tri/2,1)} lên mỗi cặp rồi trừ ${fmt(tri/6,2)} ở mỗi đơn lẻ.`:'Không có viên gạch bậc 3, nên mọi chỉ số bậc 2 hiệu quả đều trùng Möbius.';
+    $('#labCap').textContent=cap;
+  }
+  sl.addEventListener('input',e=>{const S=+e.target.dataset.s;g[S]=+e.target.value;$('#o'+S).textContent=fmt(g[S],0);$$('[data-preset]').forEach(x=>x.setAttribute('aria-pressed','false'));render()});
+  $$('[data-preset]').forEach(b=>b.onclick=()=>{g={...presets[b.dataset.preset]};$$('[data-preset]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));sync();render()});
+  $$('[data-k]').forEach(b=>b.onclick=()=>{k=+b.dataset.k;$$('[data-k]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));render()});
+  sync();render();
+})();
+
+/* DOCS TABLE */
+(function(){
+  const N='ABCDEFGH';const mk=s=>[...s].reduce((a,c)=>a|1<<N.indexOf(c),0);
+  const m=new Map([[0,0],[mk('A'),1],[mk('B'),1],[mk('C'),1],[mk('D'),1],[mk('AB'),1],[mk('CD'),-1],[mk('EFGH'),2]]);
+  const cols=['A','B','AB','C','D','CD','E','F','G','H','EF','EG','EH','FG','FH','GH','EFGH'].map(mk);
+  const lab=S=>[...N].filter((c,i)=>S&(1<<i)).join('');
+  indexTable($('#docTable'),8,m,2,cols,lab,[['bổ trợ',3],['dư thừa',3],['đội bốn người',11]]);
+})();
+
+/* COMPLEXITY */
+(function(){
+  const r=$('#nRange');
+  function upd(){const n=+r.value;$('#nOut').textContent=n;const c=2n**BigInt(n);$('#nCount').textContent=c.toLocaleString('vi-VN')+' liên minh';
+    const ms=Number(c);let s=ms/1000,txt;
+    if(s<60)txt=`${fmt(s,1)} giây`;else if(s<3600)txt=`${fmt(s/60,1)} phút`;else if(s<86400)txt=`${fmt(s/3600,1)} giờ`;else if(s<86400*365)txt=`${fmt(s/86400,1)} ngày`;else{const y=s/(86400*365);txt=y<1e6?`${Math.round(y).toLocaleString('vi-VN')} năm`:`khoảng 10^${Math.floor(Math.log10(y))} năm`}
+    $('#nTime').textContent=`Nếu mỗi lần gọi mô hình mất 1 mili giây: ${txt}.`}
+  r.oninput=upd;upd();
+})();
+
+/* SHAP-IQ DEMO */
+(function(){
+  const n=8,W=[0.4,0.3,0.2,0.1,0.05,-0.1,-0.2,-0.3];
+  const game=U=>{let s=0;for(let i=0;i<n;i++)if(U&(1<<i))s+=W[i];if((U&3)===3)s+=0.5;return s};
+  const exactK=new Map();for(let S=1;S<(1<<n);S++){const s=pc(S);if(s===1)exactK.set(S,W[Math.log2(S)]);else if(s===2)exactK.set(S,S===3?0.5:0)}
+  let seed=1;const r=$('#bRange');
+  function run(){
+    const B=+r.value;$('#bOut').textContent=B;
+    const res=shapiqEstimate(n,game,B,mulberry32(seed*9973+B));
+    const sz=$('#sizes');let h='';const maxC=70;
+    for(let u=0;u<=n;u++){const c=binom(n,u),ex=res.exactSizes.includes(u);h+=`<div class="col ${ex?'ex':'sa'}" title="kích thước ${u}: ${c} liên minh"><div class="b" style="height:${Math.max(3,c/maxC*118)}px"></div><span>${u}</span></div>`}
+    sz.innerHTML=h;
+    const singles=[...Array(n).keys()].map(i=>({label:'x'+i,v:res.ksii.get(1<<i),ex:exactK.get(1<<i)}));
+    bars($('#estSingles'),singles,{max:0.7,dec:2});
+    let t=`<div class="h"></div>${[...Array(n).keys()].map(j=>`<div class="h">x${j}</div>`).join('')}`;
+    for(let i=0;i<n;i++){t+=`<div class="h">x${i}</div>`;for(let j=0;j<n;j++){if(j<=i){t+='<div class="e"></div>';continue}const S=1<<i|1<<j,v=res.ksii.get(S);t+=`<div style="background:${cellBg(v,0.5)};${S===3?'outline:2px solid var(--ink);outline-offset:-2px;':''}" title="x${i}·x${j}: ${fmt(v)} (chính xác ${fmt(exactK.get(S))})">${fmt(v,1)}</div>`}}
+    const tri=$('#estPairs');tri.style.gridTemplateColumns=`repeat(${n+1},minmax(0,1fr))`;tri.innerHTML=t;
+    let se=0,c=0;for(const [S,v] of res.ksii){se+=(v-exactK.get(S))**2;c++}
+    const rmse=Math.sqrt(se/c);
+    $('#estStat').innerHTML=`Đã gọi trò chơi <b>${B}</b> lần: <b>${res.used}</b> lần để tính đủ các kích thước {${res.exactSizes.join(', ')}}${res.M?`, <b>${res.M}</b> lần lấy mẫu trong các kích thước {${res.sampledSizes.join(', ')}}`:''}. Mỗi lần gọi cập nhật cùng lúc cả 8 giá trị đơn lẻ và 28 cặp. Sai số căn trung bình bình phương so với đáp án chính xác: <b>${fmt(rmse,3)}</b>${rmse<1e-9?' (chính xác)':''}.`;
+  }
+  r.oninput=run;
+  $('#resample').onclick=()=>{seed++;run()};
+  $$('[data-b]').forEach(b=>b.onclick=()=>{r.value=b.dataset.b;run()});
+  run();
+})();
+
+/* CALIFORNIA OUTPUT (from shapiq docs) */
+bars($('#calBars'),[
+  ['MedInc',2.266],['Longitude',0.278],['MedInc × HouseAge',0.257],['HouseAge',0.134],['HouseAge × Longitude',-0.062],['HouseAge × Latitude',-0.067],['Latitude',-0.089],['MedInc × Latitude',-0.188],['MedInc × Longitude',-0.202]
+].map(([l,v])=>({label:l,v})),{dec:3});
+
+/* RAIL */
+(function(){
+  const links=$$('.rail a');const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(a=>a.classList.remove('on'));map.get(e.target.id)?.classList.add('on')}})},{rootMargin:'-30% 0px -60% 0px'});
+  $$('main section').forEach(s=>io.observe(s));
+})();
+</script>
+</body>
+</html>
