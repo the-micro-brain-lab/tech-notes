@@ -1,29 +1,47 @@
-/* Shared top bar, included by the home page and every note.
-   Uses its own --nav-* tokens so it never clashes with a note's styles. */
+/* Shared by the home page and every note: fonts, neutral design tokens, top bar, contents rail.
+   Notes map their own neutral colours and font variables onto the --note-* tokens and keep
+   their accent colours, which their diagrams and simulations depend on. */
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400;1,7..72,600&display=swap");
+
 :root {
-  --nav-bg: rgba(250, 250, 249, 0.6);
-  --nav-fg: #1c1917;
-  --nav-muted: #78716c;
-  --nav-line: #e7e5e4;
+  --note-bg: #f5f5f2;
+  --note-surface: #ffffff;
+  --note-sunken: #ebebe6;
+  --note-ink: #1d1f24;
+  --note-muted: #5c606a;
+  --note-line: #d8d9d3;
+  --note-font-body: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --note-font-heading: "Literata", Georgia, "Times New Roman", serif;
+  --note-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --nav-bg: rgba(12, 10, 9, 0.6);
-    --nav-fg: #e7e5e4;
-    --nav-muted: #a8a29e;
-    --nav-line: #292524;
+  :root:not([data-theme="light"]) {
+    --note-bg: #121316;
+    --note-surface: #1a1c21;
+    --note-sunken: #23252b;
+    --note-ink: #e5e6ea;
+    --note-muted: #9b9fa9;
+    --note-line: #2d3037;
   }
 }
-/* Not sticky: several notes have their own sticky contents rail near the top. */
+:root[data-theme="dark"] {
+  --note-bg: #121316;
+  --note-surface: #1a1c21;
+  --note-sunken: #23252b;
+  --note-ink: #e5e6ea;
+  --note-muted: #9b9fa9;
+  --note-line: #2d3037;
+}
+
+/* Top bar. Not sticky: the contents rail is the sticky element on note pages. */
 .site-nav {
   position: relative;
   z-index: 100;
-  background: var(--nav-bg);
-  border-bottom: 1px solid var(--nav-line);
-  font: 500 15px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+  border-bottom: 1px solid var(--note-line);
+  font: 500 15px/1 var(--note-font-body);
 }
 .site-nav .inner {
-  max-width: 960px;
+  max-width: 76rem;
   margin: 0 auto;
   padding: 0 16px;
   height: 52px;
@@ -33,8 +51,9 @@
   gap: 16px;
 }
 .site-nav a {
-  color: var(--nav-fg);
+  color: var(--note-ink);
   text-decoration: none;
+  font-size: 15px;
 }
 .site-nav .brand {
   display: inline-flex;
@@ -52,17 +71,80 @@
   transform: rotate(45deg);
 }
 .site-nav .links a {
-  color: var(--nav-muted);
+  color: var(--note-muted);
+  font-weight: 500;
   padding: 6px 10px;
   border-radius: 6px;
 }
 .site-nav .links a:hover,
 .site-nav .links a[aria-current="page"] {
-  color: var(--nav-fg);
-  background: var(--nav-line);
+  color: var(--note-ink);
+  background: var(--note-sunken);
 }
 .site-nav a:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;
   border-radius: 6px;
+}
+
+/* Contents rail: <nav class="note-toc"><p>Mục lục</p><ol><li><a href="#id">…</a></li></ol></nav>
+   as the first column of the note's grid. A boxed row of links on narrow screens, a sticky
+   numbered list from 1100px. assets/toc.js highlights the section being read. */
+.note-toc {
+  font: 400 0.875rem/1.35 var(--note-font-body);
+  border: 1px solid var(--note-line);
+  border-radius: 8px;
+  background: var(--note-surface);
+  padding: 0.75rem 1rem;
+  margin: 1.25rem 0 0;
+}
+.note-toc p {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--note-muted);
+}
+.note-toc ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.1rem;
+  counter-reset: toc;
+}
+.note-toc li { margin: 0; counter-increment: toc; }
+.note-toc a {
+  display: flex;
+  gap: 0.45rem;
+  color: var(--note-muted);
+  text-decoration: none;
+  border-radius: 6px;
+}
+.note-toc a::before {
+  content: counter(toc);
+  font: 500 0.72rem/1 var(--note-font-mono);
+  padding-top: 0.2rem;
+  min-width: 1rem;
+  opacity: 0.75;
+}
+.note-toc a:hover, .note-toc a.on { color: var(--note-ink); }
+.note-toc a:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+@media (min-width: 1100px) {
+  .note-toc {
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    border: 0;
+    background: none;
+    padding: 3rem 0 0;
+    margin: 0;
+  }
+  .note-toc ol { display: grid; gap: 0.1rem; }
+  .note-toc a { padding: 0.3rem 0.5rem; }
+  .note-toc a:hover, .note-toc a.on { background: var(--note-sunken); }
 }

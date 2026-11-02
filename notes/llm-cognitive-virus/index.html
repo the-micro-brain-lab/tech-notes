@@ -4,16 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LLM như một virus nhận thức: đọc tương tác</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;1,400&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#F4F3F8; --paper:#FFFFFF; --ink:#221D30; --muted:#5F5973; --line:#DBD6E6;
+  --bg:var(--note-bg); --paper:var(--note-surface); --ink:var(--note-ink); --muted:var(--note-muted); --line:var(--note-line);
   --U:#3D46A8; --C:#B5740F; --D:#C23A6E; --G:#1D7A69;
   --U-t:rgba(61,70,168,.13); --C-t:rgba(214,150,30,.22); --D-t:rgba(194,58,110,.13);
-  --serif:"Fraunces", Georgia, "Times New Roman", serif;
-  --sans:"Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --serif:var(--note-font-heading);
+  --sans:var(--note-font-body);
   color-scheme:light;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
@@ -21,14 +18,14 @@
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#15131C; --paper:#1D1A27; --ink:#ECE9F4; --muted:#A49EB7; --line:#34304A;
+    --bg:var(--note-bg); --paper:var(--note-surface); --ink:var(--note-ink); --muted:var(--note-muted); --line:var(--note-line);
     --U:#929AF2; --C:#E9AE4C; --D:#F27FA8; --G:#52C7AD;
     --U-t:rgba(146,154,242,.16); --C-t:rgba(233,174,76,.2); --D-t:rgba(242,127,168,.15);
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#15131C; --paper:#1D1A27; --ink:#ECE9F4; --muted:#A49EB7; --line:#34304A;
+  --bg:var(--note-bg); --paper:var(--note-surface); --ink:var(--note-ink); --muted:var(--note-muted); --line:var(--note-line);
   --U:#929AF2; --C:#E9AE4C; --D:#F27FA8; --G:#52C7AD;
   --U-t:rgba(146,154,242,.16); --C-t:rgba(233,174,76,.2); --D-t:rgba(242,127,168,.15);
   color-scheme:dark;
@@ -70,22 +67,6 @@ sub{font-size:.7em}
 .hint{font-size:.9rem;color:var(--muted);margin:.5rem 0 0}
 @media (max-width:820px){.hero{padding-top:2rem}.hero-fig{grid-template-columns:minmax(0,1fr);gap:1rem}.dish{max-width:400px;margin:0 auto}}
 
-/* Contents: a row of links on narrow screens, a sticky rail on the left from 1100px. */
-nav.toc{border-bottom:1px solid var(--line);padding:.8rem 0;margin-top:1rem}
-nav.toc p{display:none;margin:0 0 .6rem;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--muted)}
-nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.35rem 1.3rem;font-size:.9rem;counter-reset:toc}
-nav.toc a{color:var(--muted);text-decoration:none}
-nav.toc a:hover{color:var(--ink);text-decoration:underline}
-nav.toc a.on{color:var(--ink)}
-@media (min-width:1100px){
-  nav.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 1rem);align-self:start;max-height:calc(100vh - 2rem);overflow-y:auto;border:0;padding:3.5rem 0 0;margin:0}
-  nav.toc p{display:block}
-  nav.toc ol{display:grid;gap:.1rem;font-size:.875rem}
-  nav.toc li{counter-increment:toc}
-  nav.toc a{display:flex;gap:.5rem;padding:.3rem .5rem;border-radius:6px;line-height:1.35}
-  nav.toc a::before{content:counter(toc);font-variant-numeric:tabular-nums;font-size:.75rem;color:var(--U);min-width:1rem;padding-top:.1rem}
-  nav.toc a:hover,nav.toc a.on{background:var(--paper);text-decoration:none}
-}
 
 section{padding:3.5rem 0 1rem}
 .note{border-left:3px solid var(--C);padding:.2rem 0 .2rem 1rem;color:var(--muted);font-size:.96rem;max-width:41rem}
@@ -168,18 +149,19 @@ dl.crit dd{margin:0;color:var(--ink)}
 footer{border-top:1px solid var(--line);margin-top:4rem;padding:1.5rem 0 3rem;font-size:.86rem;color:var(--muted)}
 </style>
 <link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/toc.js" defer></script>
 </head>
 <body>
 <nav class="site-nav" aria-label="Site">
   <div class="inner">
-    <a class="brand" href="../../">Tech Notes</a>
+    <a class="brand" href="../../">The Micro Brain Lab</a>
     <div class="links"><a href="../../">Home</a></div>
   </div>
 </nav>
 <div class="wrap">
 <div class="shell">
 
-<nav class="toc" aria-label="Mục lục">
+<nav class="note-toc" aria-label="Mục lục">
   <p>Mục lục</p>
   <ol>
     <li><a href="#y-tuong">Hai lực kéo</a></li>
@@ -1091,13 +1073,6 @@ const onTheme = () => { readColors(); schedule(); };
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
 new MutationObserver(onTheme).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme','class','style']});
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
-
-/* ---------- contents rail: highlight the section being read ---------- */
-const tocLinks = $$('nav.toc a'), tocMap = new Map(tocLinks.map(a => [a.getAttribute('href').slice(1), a]));
-const tocIO = new IntersectionObserver(es => es.forEach(e => {
-  if (e.isIntersecting){ tocLinks.forEach(a => a.classList.remove('on')); tocMap.get(e.target.id)?.classList.add('on'); }
-}), {rootMargin:'-30% 0px -60% 0px'});
-$$('main section[id]').forEach(s => tocIO.observe(s));
 
 heroReset();
 for (let i=0;i<20;i++) heroStep(0.3);

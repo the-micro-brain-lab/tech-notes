@@ -4,22 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>How to write a paper - Dàn ý trước, câu chữ sau</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
 <style>
   :root {
     color-scheme: light;
-    --paper: #EEF1F4;
-    --surface: #FFFFFF;
-    --ink: #1B2A4A;
-    --graphite: #5B6474;
-    --rule: #C9D1DC;
+    --paper: var(--note-bg);
+    --surface: var(--note-surface);
+    --ink: var(--note-ink);
+    --graphite: var(--note-muted);
+    --rule: var(--note-line);
     --marker: #F3DD6D;
     --red: #B23A2E;
     --blue: #2F5BA8;
-    --serif: "Literata", "Noto Serif", Georgia, "Times New Roman", serif;
-    --sans: "Be Vietnam Pro", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --serif: var(--note-font-heading);
+    --sans: var(--note-font-body);
     box-sizing: border-box;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -27,11 +24,11 @@
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --paper: #131923;
-      --surface: #1B2330;
-      --ink: #E3E8F0;
-      --graphite: #9AA4B4;
-      --rule: #2D3847;
+      --paper: var(--note-bg);
+      --surface: var(--note-surface);
+      --ink: var(--note-ink);
+      --graphite: var(--note-muted);
+      --rule: var(--note-line);
       --marker: #5E5114;
       --red: #E2735F;
       --blue: #8EB1EE;
@@ -39,11 +36,11 @@
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --paper: #131923;
-    --surface: #1B2330;
-    --ink: #E3E8F0;
-    --graphite: #9AA4B4;
-    --rule: #2D3847;
+    --paper: var(--note-bg);
+    --surface: var(--note-surface);
+    --ink: var(--note-ink);
+    --graphite: var(--note-muted);
+    --rule: var(--note-line);
     --marker: #5E5114;
     --red: #E2735F;
     --blue: #8EB1EE;
@@ -54,7 +51,7 @@
     margin: 0;
     background: var(--paper);
     color: var(--ink);
-    font-family: var(--serif);
+    font-family: var(--sans);
     font-size: 1.0625rem;
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
@@ -62,24 +59,14 @@
   main {
     max-width: 46rem;
     margin: 0 auto;
-    padding: 3.5rem 1.25rem 4rem;
+    padding: 3.5rem 0 4rem;
   }
 
-  /* Contents rail: hidden on narrow screens, sticky on the left from 1100px. */
-  nav.toc { display: none; }
+  /* Contents rail column from 1100px. */
+  .shell { max-width: 46rem; margin: 0 auto; padding: 0 1.25rem; }
   @media (min-width: 1100px) {
-    .shell { max-width: 66rem; margin: 0 auto; display: grid; grid-template-columns: 13rem minmax(0, 46rem); gap: 2rem; padding-left: 1.25rem; }
+    .shell { max-width: 66rem; display: grid; grid-template-columns: 13rem minmax(0, 46rem); gap: 2rem; }
     .shell main { margin: 0; }
-    nav.toc {
-      display: block; position: sticky; top: 1rem; align-self: start;
-      padding-top: 3.5rem; font-family: var(--sans); font-size: 0.875rem;
-    }
-    nav.toc p { margin: 0 0 0.6rem; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--graphite); }
-    nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.1rem; counter-reset: toc; }
-    nav.toc li { counter-increment: toc; }
-    nav.toc a { display: flex; gap: 0.5rem; padding: 0.3rem 0.5rem; border-radius: 6px; color: var(--graphite); text-decoration: none; line-height: 1.35; }
-    nav.toc a::before { content: counter(toc); font-size: 0.75rem; color: var(--blue); min-width: 1rem; padding-top: 0.1rem; font-variant-numeric: tabular-nums; }
-    nav.toc a:hover, nav.toc a.on { background: var(--surface); color: var(--ink); }
   }
   section > h2 { scroll-margin-top: 1rem; }
   h1, h2, h3 { font-family: var(--serif); line-height: 1.2; margin: 0; }
@@ -202,16 +189,17 @@
   footer p { font-style: italic; }
 </style>
 <link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/toc.js" defer></script>
 </head>
 <body>
 <nav class="site-nav" aria-label="Site">
   <div class="inner">
-    <a class="brand" href="../../">Tech Notes</a>
+    <a class="brand" href="../../">The Micro Brain Lab</a>
     <div class="links"><a href="../../">Home</a></div>
   </div>
 </nav>
 <div class="shell">
-<nav class="toc" aria-label="Mục lục">
+<nav class="note-toc" aria-label="Mục lục">
   <p>Mục lục</p>
   <ol>
     <li><a href="#h-phases">Hai pha</a></li>
@@ -430,19 +418,6 @@
   btnRead.addEventListener("click", function () { render("read"); });
   btnWrite.addEventListener("click", function () { render("write"); });
   render("read");
-})();
-
-// Contents rail: highlight the section being read.
-(function () {
-  var links = Array.prototype.slice.call(document.querySelectorAll("nav.toc a"));
-  var io = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) {
-      if (!e.isIntersecting) return;
-      var id = e.target.getAttribute("aria-labelledby");
-      links.forEach(function (a) { a.classList.toggle("on", a.getAttribute("href") === "#" + id); });
-    });
-  }, { rootMargin: "-30% 0px -60% 0px" });
-  document.querySelectorAll("main section[aria-labelledby]").forEach(function (s) { io.observe(s); });
 })();
 </script>
 </body>

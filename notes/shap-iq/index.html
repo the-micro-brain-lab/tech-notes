@@ -4,17 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SHAP-IQ từ gốc: lý thuyết trò chơi, tương tác và thuật toán</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#F3F3F7;--surface:#FFFFFF;--sunk:#E9E8F0;--ink:#1E1B33;--ink2:#5B5773;--rule:#D8D6E2;
+  --paper:var(--note-bg);--surface:var(--note-surface);--sunk:var(--note-sunken);--ink:var(--note-ink);--ink2:var(--note-muted);--rule:var(--note-line);
   --pos:#D9104A;--neg:#1A73CF;--pinc:#A87405;--plat:#0B8174;--plon:#6849CC;--accent:#6849CC;
   --code-bg:#1E1B33;--code-ink:#ECEAF6;--code-dim:#9D98BA;
-  --sans:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --serif:"Literata",Georgia,"Times New Roman",serif;
-  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:var(--note-font-body);
+  --serif:var(--note-font-heading);
+  --mono:var(--note-font-mono);
   color-scheme:light;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
@@ -22,14 +19,14 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --paper:#13121B;--surface:#1C1A28;--sunk:#262437;--ink:#ECEAF6;--ink2:#A6A2BE;--rule:#322F47;
+    --paper:var(--note-bg);--surface:var(--note-surface);--sunk:var(--note-sunken);--ink:var(--note-ink);--ink2:var(--note-muted);--rule:var(--note-line);
     --pos:#FF5281;--neg:#55A6FF;--pinc:#E2B443;--plat:#35C7B4;--plon:#A58FF6;--accent:#A58FF6;
     --code-bg:#0D0C14;--code-ink:#ECEAF6;--code-dim:#8C88A8;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --paper:#13121B;--surface:#1C1A28;--sunk:#262437;--ink:#ECEAF6;--ink2:#A6A2BE;--rule:#322F47;
+  --paper:var(--note-bg);--surface:var(--note-surface);--sunk:var(--note-sunken);--ink:var(--note-ink);--ink2:var(--note-muted);--rule:var(--note-line);
   --pos:#FF5281;--neg:#55A6FF;--pinc:#E2B443;--plat:#35C7B4;--plon:#A58FF6;--accent:#A58FF6;
   --code-bg:#0D0C14;--code-ink:#ECEAF6;--code-dim:#8C88A8;
   color-scheme:dark;
@@ -37,29 +34,18 @@
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:1.0625rem;line-height:1.75;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:1.0625rem;line-height:1.75;-webkit-font-smoothing:antialiased}
 a{color:var(--accent);text-underline-offset:3px}
 :focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:6px}
 img,svg{max-width:100%}
 
 .shell{max-width:1200px;margin:0 auto;padding:0 20px 80px;display:grid;grid-template-columns:minmax(0,1fr)}
 @media (min-width:1120px){.shell{grid-template-columns:200px minmax(0,1fr);gap:64px}}
-.rail{display:none}
-@media (min-width:1120px){
-  .rail{display:block;position:sticky;top:calc(28px + env(safe-area-inset-top,0px));align-self:start;padding-top:40px;font-family:var(--sans);font-size:.86rem;line-height:1.35}
-}
-.rail p{margin:0 0 14px;color:var(--ink2);font-weight:600}
-.rail ol{list-style:none;margin:0;padding:0;counter-reset:ch}
-.rail li{counter-increment:ch;margin:0}
-.rail a{display:grid;grid-template-columns:22px 1fr;gap:6px;padding:6px 0;color:var(--ink2);text-decoration:none}
-.rail a::before{content:counter(ch);font-weight:700;font-variant-numeric:tabular-nums;color:var(--rule)}
-.rail a:hover{color:var(--ink)}
-.rail a.on{color:var(--ink)}
-.rail a.on::before{color:var(--accent)}
 
 main{min-width:0;max-width:960px}
 .prose>p,.prose>ul,.prose>ol,.prose>h2,.prose>h3,.prose>dl,.prose>.eq,.prose>blockquote{max-width:680px}
-h1,h2,h3,.sans{font-family:var(--sans)}
+h1,h2,h3{font-family:var(--serif)}
+.sans{font-family:var(--sans)}
 h2{font-size:clamp(1.55rem,3.2vw,2.1rem);line-height:1.15;letter-spacing:-.02em;font-weight:800;margin:96px 0 18px;display:flex;align-items:baseline;gap:14px}
 h2 .n{font-size:.95rem;font-weight:700;color:var(--paper);background:var(--ink);border-radius:50%;width:2em;height:2em;display:inline-grid;place-items:center;flex:none;transform:translateY(-3px);font-variant-numeric:tabular-nums}
 h3{font-size:1.18rem;font-weight:700;letter-spacing:-.01em;margin:40px 0 10px}
@@ -237,17 +223,18 @@ footer{margin-top:90px;padding-top:24px;border-top:1px solid var(--rule);font-fa
 footer ul{padding-left:1.1em}
 </style>
 <link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/toc.js" defer></script>
 </head>
 <body>
 <nav class="site-nav" aria-label="Site">
   <div class="inner">
-    <a class="brand" href="../../">Tech Notes</a>
+    <a class="brand" href="../../">The Micro Brain Lab</a>
     <div class="links"><a href="../../">Home</a></div>
   </div>
 </nav>
 <div class="shell">
-<nav class="rail" aria-label="Các chương">
-  <p>Lộ trình đọc</p>
+<nav class="note-toc" aria-label="Mục lục">
+  <p>Mục lục</p>
   <ol>
     <li><a href="#c1">Mô hình là một trò chơi</a></li>
     <li><a href="#c2">“Vắng mặt” nghĩa là gì</a></li>
@@ -879,12 +866,6 @@ bars($('#calBars'),[
   ['MedInc',2.266],['Longitude',0.278],['MedInc × HouseAge',0.257],['HouseAge',0.134],['HouseAge × Longitude',-0.062],['HouseAge × Latitude',-0.067],['Latitude',-0.089],['MedInc × Latitude',-0.188],['MedInc × Longitude',-0.202]
 ].map(([l,v])=>({label:l,v})),{dec:3});
 
-/* RAIL */
-(function(){
-  const links=$$('.rail a');const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
-  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(a=>a.classList.remove('on'));map.get(e.target.id)?.classList.add('on')}})},{rootMargin:'-30% 0px -60% 0px'});
-  $$('main section').forEach(s=>io.observe(s));
-})();
 </script>
 </body>
 </html>

@@ -1,18 +1,16 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>Worker, DO và WebSocket</title><link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/toc.js" defer></script>
 </head><body>
 <nav class="site-nav" aria-label="Site">
   <div class="inner">
-    <a class="brand" href="../../">Tech Notes</a>
+    <a class="brand" href="../../">The Micro Brain Lab</a>
     <div class="links"><a href="../../">Home</a></div>
   </div>
 </nav>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: sticky lesson rail on wide screens + one reading column (~68ch); simulators, code and diagrams use the full column width. Each component of the platform owns one hue, used the same way in prose, diagrams and the simulator. */
 :root {
-  --bg: #f2f4f8; --surface: #ffffff; --sunk: #e9edf3; --ink: #141923; --muted: #576072; --line: #d4d9e3;
+  --bg: var(--note-bg); --surface: var(--note-surface); --sunk: var(--note-sunken); --ink: var(--note-ink); --muted: var(--note-muted); --line: var(--note-line);
   --accent: #2c55c9;
   --client: #3c4456; --client-bg: #eceef3;
   --edge: #3f6690; --edge-bg: #e2eaf4;
@@ -20,12 +18,12 @@
   --do: #08715f; --do-bg: #dbf1ec;
   --store: #5a43b5; --store-bg: #ebe7fa;
   --warn: #a23c1f; --warn-bg: #fbe6de;
-  --f-display: "Bricolage Grotesque", "Be Vietnam Pro", system-ui, sans-serif;
-  --f-body: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
-  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --f-display: var(--note-font-heading);
+  --f-body: var(--note-font-body);
+  --f-mono: var(--note-font-mono);
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #0e1117; --surface: #151a23; --sunk: #1b212c; --ink: #e3e7ef; --muted: #9aa3b5; --line: #2a3140;
+  --bg: var(--note-bg); --surface: var(--note-surface); --sunk: var(--note-sunken); --ink: var(--note-ink); --muted: var(--note-muted); --line: var(--note-line);
   --accent: #8eaaff;
   --client: #c2c8d6; --client-bg: #222834;
   --edge: #8fb6e6; --edge-bg: #152438;
@@ -35,7 +33,7 @@
   --warn: #f39b7e; --warn-bg: #3a1c12;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
-  --bg: #0e1117; --surface: #151a23; --sunk: #1b212c; --ink: #e3e7ef; --muted: #9aa3b5; --line: #2a3140;
+  --bg: var(--note-bg); --surface: var(--note-surface); --sunk: var(--note-sunken); --ink: var(--note-ink); --muted: var(--note-muted); --line: var(--note-line);
   --accent: #8eaaff;
   --client: #c2c8d6; --client-bg: #222834;
   --edge: #8fb6e6; --edge-bg: #152438;
@@ -53,16 +51,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 
 .shell { max-width: 1160px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 40px; }
 @media (min-width: 1100px) { .shell { grid-template-columns: 230px minmax(0, 1fr); } }
-nav.toc { font-size: 14px; }
-@media (min-width: 1100px) { nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); align-self: start; max-height: calc(100vh - 32px); overflow-y: auto; padding-top: 36px; } }
-nav.toc details { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 10px 14px; margin-top: 16px; }
-@media (min-width: 1100px) { nav.toc details { border: 0; background: none; padding: 0; margin: 0; } nav.toc summary { display: none; } }
-nav.toc summary { cursor: pointer; font-weight: 500; }
-nav.toc ol { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; counter-reset: toc; }
-nav.toc li { counter-increment: toc; }
-nav.toc a { display: block; padding: 3px 8px; border-radius: 6px; color: var(--muted); text-decoration: none; }
-nav.toc a::before { content: counter(toc) ". "; font-family: var(--f-mono); font-size: 12px; }
-nav.toc a:hover { background: var(--sunk); color: var(--ink); }
 
 main { min-width: 0; max-width: 800px; }
 header.doc { padding-top: 44px; padding-bottom: 26px; border-bottom: 1px solid var(--line); }
@@ -176,9 +164,8 @@ svg .tx-worker { fill: var(--worker); } svg .tx-do { fill: var(--do); } svg .tx-
 </style>
 
 <div class="shell">
-<nav class="toc" aria-label="Mục lục">
-  <details open>
-    <summary>Mục lục</summary>
+<nav class="note-toc" aria-label="Mục lục">
+  <p>Mục lục</p>
     <ol>
       <li><a href="#tong-quan">Bức tranh tổng</a></li>
       <li><a href="#worker">Worker</a></li>
@@ -191,7 +178,6 @@ svg .tx-worker { fill: var(--worker); } svg .tx-do { fill: var(--do); } svg .tx-
       <li><a href="#chi-phi">Cái gì bị tính tiền</a></li>
       <li><a href="#hieu-lam">Hiểu lầm và thuật ngữ</a></li>
     </ol>
-  </details>
 </nav>
 
 <main>
