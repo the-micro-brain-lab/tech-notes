@@ -1,0 +1,1133 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>Sổ tay Supabase × Cloudflare</title><link rel="stylesheet" href="../../assets/site.css">
+</head><body>
+<nav class="site-nav" aria-label="Site">
+  <div class="inner">
+    <a class="brand" href="../../">Tech Notes</a>
+    <div class="links"><a href="../../">Home</a></div>
+  </div>
+</nav>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column (~46rem) with a sticky contents rail from 1100px; a settings bar
+   on top rewrites every command and template on the page for the app being set up. */
+:root {
+  --paper: #f4f5f1;
+  --surface: #ffffff;
+  --sunken: #eaede6;
+  --ink: #1b2320;
+  --muted: #56625c;
+  --line: #d4dad1;
+  --accent: #0e6a5b;
+  --accent-soft: #dbeee8;
+  --supa: #2c7a47;
+  --supa-soft: #e0f0e5;
+  --cf: #a9520d;
+  --cf-soft: #f7e6d6;
+  --warn: #7d5300;
+  --warn-soft: #faefd4;
+  --code-bg: #1c2420;
+  --code-fg: #e2ebe6;
+  --code-dim: #8fa39a;
+  --font-body: 'Be Vietnam Pro', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111614;
+    --surface: #182019;
+    --sunken: #0c100e;
+    --ink: #e2e9e5;
+    --muted: #98a59e;
+    --line: #2a332e;
+    --accent: #5fc6b0;
+    --accent-soft: #15302a;
+    --supa: #73c891;
+    --supa-soft: #15301d;
+    --cf: #f0a35f;
+    --cf-soft: #392514;
+    --warn: #f0c46a;
+    --warn-soft: #312810;
+    --code-bg: #0a0e0c;
+    --code-fg: #dde7e1;
+    --code-dim: #7f948a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111614;
+  --surface: #182019;
+  --sunken: #0c100e;
+  --ink: #e2e9e5;
+  --muted: #98a59e;
+  --line: #2a332e;
+  --accent: #5fc6b0;
+  --accent-soft: #15302a;
+  --supa: #73c891;
+  --supa-soft: #15301d;
+  --cf: #f0a35f;
+  --cf-soft: #392514;
+  --warn: #f0c46a;
+  --warn-soft: #312810;
+  --code-bg: #0a0e0c;
+  --code-fg: #dde7e1;
+  --code-dim: #7f948a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 1rem; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.65;
+  padding-inline: 1rem;
+  padding-block: 0 4rem;
+}
+.wrap {
+  max-width: 76rem;
+  margin: 0 auto;
+  display: grid;
+  gap: 2.5rem;
+}
+@media (min-width: 1100px) {
+  .wrap { grid-template-columns: 14rem minmax(0, 1fr); }
+}
+main { min-width: 0; max-width: 48rem; }
+
+/* Contents rail */
+nav.toc { display: none; }
+@media (min-width: 1100px) {
+  nav.toc {
+    display: block;
+    position: sticky;
+    top: calc(env(safe-area-inset-top, 0px) + 1.5rem);
+    align-self: start;
+    padding-top: 2.5rem;
+    font-size: 0.875rem;
+  }
+}
+nav.toc p {
+  margin: 0 0 0.6rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; counter-reset: toc; }
+nav.toc a {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  color: var(--muted);
+  text-decoration: none;
+}
+nav.toc a::before {
+  counter-increment: toc;
+  content: counter(toc);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent);
+  min-width: 1rem;
+  padding-top: 0.1rem;
+}
+nav.toc a:hover, nav.toc a:focus-visible { background: var(--sunken); color: var(--ink); }
+
+/* Masthead */
+header.mast { padding-top: 2.5rem; display: grid; gap: 0.9rem; }
+.eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--accent);
+}
+h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 2.9rem);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+h1 .x { color: var(--muted); font-weight: 400; }
+.lede { margin: 0; font-size: 1.1rem; color: var(--muted); max-width: 40rem; }
+.stack { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--sunken);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.chip.supa { background: var(--supa-soft); color: var(--supa); }
+.chip.cf { background: var(--cf-soft); color: var(--cf); }
+.chip.web { background: var(--accent-soft); color: var(--accent); }
+
+/* Settings bar */
+.vars {
+  margin-top: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+.vars-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.vars-head strong { font-size: 0.95rem; }
+.vars-head span { font-size: 0.85rem; color: var(--muted); }
+.fields { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); }
+.field { display: grid; gap: 0.25rem; min-width: 0; }
+.field label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+.field input {
+  font: 500 0.92rem var(--font-mono);
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--paper);
+  color: var(--ink);
+  width: 100%;
+  min-width: 0;
+}
+.field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.vars button {
+  justify-self: start;
+  font: 600 0.82rem var(--font-body);
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0.2rem 0;
+}
+
+/* Sections */
+section { padding-top: 3rem; }
+h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.55rem;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+}
+h2 .num { font: 600 0.9rem var(--font-mono); color: var(--accent); }
+h3 { margin: 1.8rem 0 0.4rem; font-size: 1.1rem; line-height: 1.35; text-wrap: balance; }
+.intro { margin: 0 0 1.2rem; color: var(--muted); }
+p { margin: 0 0 0.9rem; }
+.ref { font-size: 0.82rem; color: var(--muted); margin-top: -0.4rem; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--sunken); padding: 0.05em 0.35em; border-radius: 4px; overflow-wrap: anywhere; }
+a { color: var(--accent); }
+ul.plain { margin: 0 0 1rem; padding-left: 1.2rem; display: grid; gap: 0.35rem; }
+
+/* Code blocks */
+.code-wrap { position: relative; margin: 0.6rem 0 1.2rem; }
+pre.code {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-fg);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  font: 0.82rem/1.6 var(--font-mono);
+  tab-size: 2;
+}
+pre.code code { background: none; padding: 0; border-radius: 0; font: inherit; color: inherit; overflow-wrap: normal; }
+pre.code .c { color: var(--code-dim); }
+pre.code .v, .v { color: inherit; }
+pre.code .v { color: #ffd38a; }
+.code-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font: 600 0.72rem var(--font-mono);
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+.copy {
+  font: 600 0.72rem var(--font-body);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 0.15rem 0.55rem;
+  cursor: pointer;
+}
+.copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; margin: 0.6rem 0 1.2rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th, td { text-align: left; vertical-align: top; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); }
+th { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; background: var(--sunken); }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+td.num { font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: 0.82rem; white-space: nowrap; }
+.tag { font-size: 0.72rem; font-weight: 700; padding: 0.05rem 0.45rem; border-radius: 999px; white-space: nowrap; }
+.tag.pub { background: var(--accent-soft); color: var(--accent); }
+.tag.sec { background: var(--warn-soft); color: var(--warn); }
+
+/* Mechanisms */
+.mech { display: grid; gap: 0.9rem; }
+.mech article {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 1rem 1.1rem 0.4rem;
+  min-width: 0;
+}
+.mech h3 { margin: 0 0 0.4rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
+/* Status */
+.status {
+  border-left: 3px solid var(--warn);
+  background: var(--warn-soft);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 0.9rem 1.1rem;
+  margin-top: 1.5rem;
+}
+.status h3 { margin: 0 0 0.4rem; font-size: 1rem; }
+.status ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.2rem; font-size: 0.92rem; }
+
+/* Phases */
+.phase {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin: 0 0 1rem;
+  overflow: hidden;
+}
+.phase > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem 1rem;
+  align-items: center;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--line);
+}
+.phase h3 { margin: 0; font-size: 1.05rem; }
+.phase .when { grid-column: 1; font-size: 0.83rem; color: var(--muted); }
+.progress { grid-column: 2; grid-row: 1 / span 2; display: grid; justify-items: end; gap: 0.25rem; }
+.progress span { font: 600 0.8rem var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.bar { width: 5.5rem; height: 6px; border-radius: 99px; background: var(--sunken); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.25s ease; }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+.phase ol { list-style: none; margin: 0; padding: 0.4rem 0; }
+.phase li { padding: 0.45rem 1.1rem; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.7rem; align-items: start; }
+.phase li + li { border-top: 1px dashed var(--line); }
+.phase input[type="checkbox"] { width: 1.1rem; height: 1.1rem; margin-top: 0.25rem; accent-color: var(--accent); cursor: pointer; }
+.phase label { cursor: pointer; }
+.phase li.done label { color: var(--muted); }
+.phase li.done label > b { text-decoration: line-through; text-decoration-color: var(--muted); }
+.phase li .code-wrap { margin: 0.5rem 0 0.2rem; }
+.phase .side { display: inline-flex; gap: 0.3rem; margin-left: 0.3rem; vertical-align: 1px; }
+
+/* Gotchas */
+.gotchas { counter-reset: g; list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.gotchas li {
+  display: grid;
+  grid-template-columns: 2.1rem minmax(0, 1fr);
+  gap: 0.6rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.gotchas li::before {
+  counter-increment: g;
+  content: counter(g, decimal-leading-zero);
+  font: 600 0.85rem var(--font-mono);
+  color: var(--warn);
+  padding-top: 0.15rem;
+}
+.gotchas b { display: block; }
+.gotchas p { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.92rem; }
+
+pre.mermaid { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem; overflow-x: auto; margin: 0.6rem 0 1.2rem; text-align: center; }
+footer { margin-top: 3.5rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Mục lục">
+    <p>Trên trang này</p>
+    <ol>
+      <li><a href="#kien-truc">Kiến trúc</a></li>
+      <li><a href="#co-che">Bảy cơ chế</a></li>
+      <li><a href="#cau-truc">Cấu trúc repo</a></li>
+      <li><a href="#moi-truong">Môi trường và cổng</a></li>
+      <li><a href="#bien">Biến và secret</a></li>
+      <li><a href="#ke-hoach">Kế hoạch triển khai</a></li>
+      <li><a href="#quy-uoc">Quy ước chung</a></li>
+      <li><a href="#bay">Bẫy đã gặp</a></li>
+      <li><a href="#app-moi">Áp dụng cho app mới</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="mast">
+      <p class="eyebrow">Sổ tay hạ tầng · rút ra từ WhatWhere</p>
+      <h1>Supabase <span class="x">×</span> Cloudflare</h1>
+      <p class="lede">Một khuôn để đưa app web lên Supabase (đăng nhập, Postgres) và Cloudflare (Worker, R2). Mọi app theo khuôn này có cùng flow, cùng cơ chế và cùng cấu trúc thư mục, nên chép được từ app này sang app khác.</p>
+      <ul class="stack" aria-label="Công nghệ">
+        <li class="chip web">React + Vite PWA</li>
+        <li class="chip cf">Workers + Hono</li>
+        <li class="chip cf">R2</li>
+        <li class="chip cf">Cron Triggers</li>
+        <li class="chip supa">Auth · email OTP</li>
+        <li class="chip supa">Postgres + RLS</li>
+        <li class="chip">GitHub Actions</li>
+      </ul>
+
+      <form class="vars" id="vars" aria-labelledby="vars-title">
+        <div class="vars-head">
+          <strong id="vars-title">App đang dựng</strong>
+          <span>Điền vào đây, mọi lệnh và file mẫu bên dưới đổi theo. Tiến độ checklist lưu riêng cho từng app.</span>
+        </div>
+        <div class="fields">
+          <div class="field">
+            <label for="v-app">Tên app (slug)</label>
+            <input id="v-app" name="app" autocomplete="off" spellcheck="false" value="whatwhere">
+          </div>
+          <div class="field">
+            <label for="v-domain">Tên miền production</label>
+            <input id="v-domain" name="domain" autocomplete="off" spellcheck="false" value="whatwhere.example.com">
+          </div>
+          <div class="field">
+            <label for="v-port">Cổng dev (Vite)</label>
+            <input id="v-port" name="port" inputmode="numeric" autocomplete="off" value="5973">
+          </div>
+          <div class="field">
+            <label for="v-workerport">Cổng wrangler dev</label>
+            <input id="v-workerport" name="workerport" inputmode="numeric" autocomplete="off" value="8787">
+          </div>
+          <div class="field">
+            <label for="v-region">Vùng R2 (jurisdiction)</label>
+            <input id="v-region" name="region" autocomplete="off" spellcheck="false" value="eu">
+          </div>
+        </div>
+        <button type="button" id="vars-reset">Về giá trị của WhatWhere</button>
+      </form>
+
+      <div class="status" role="note">
+        <h3>WhatWhere hôm nay (4/10/2026, main <code>0bcccd6</code>)</h3>
+        <ul>
+          <li>Đã có: code web và Worker, 18 migration, test pgTAP, <code>ci.yml</code>, <code>deploy.yml</code>, <code>scripts/smoke.sh</code>.</li>
+          <li>Chưa deploy lần nào (T1.12 còn mở). Quy trình deploy chưa chạy thật: bước lấy URL và <code>db push</code> không tương tác chưa được kiểm.</li>
+          <li>Còn trống: tên model Gemini, binding <code>RATE_LIMITER</code>, xoá file mồ côi trên R2 (đang tắt), giới hạn gói <code>household</code>, chỗ trống trong <code>LAUNCH.md</code>.</li>
+        </ul>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section id="kien-truc" aria-labelledby="h-kien-truc">
+      <h2 id="h-kien-truc"><span class="num">01</span>Kiến trúc</h2>
+      <p class="intro">Một Worker phục vụ cả giao diện lẫn API trên cùng một tên miền, nên không cần CORS. Trình duyệt nói thẳng với Postgres cho dữ liệu thường, RLS là hàng rào. Worker chỉ làm những việc cần bí mật, cần file, hoặc tốn tiền.</p>
+      <pre class="mermaid">
+flowchart LR
+  B["Trình duyệt&lt;br/&gt;PWA React + Vite"]
+  W["Cloudflare Worker&lt;br/&gt;Hono: assets + /api + cron"]
+  A["Supabase Auth&lt;br/&gt;email OTP, JWT ES256"]
+  P["Supabase Postgres&lt;br/&gt;RLS + RPC"]
+  R["R2&lt;br/&gt;file private"]
+  X["API ngoài&lt;br/&gt;AI, trả phí"]
+  B -- "HTML, JS, CSS" --> W
+  B -- "supabase-js: đăng nhập" --> A
+  B -- "supabase-js: đọc, ghi (RLS)" --> P
+  B -- "/api/* + Bearer JWT" --> W
+  W -- "JWKS: kiểm JWT" --> A
+  W -- "JWT người dùng hoặc secret key" --> P
+  W --> R
+  W --> X
+</pre>
+
+      <h3>Việc nào đặt ở đâu</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Việc</th><th>Ở đâu</th><th>Vì sao</th></tr></thead>
+          <tbody>
+            <tr><td>Đăng nhập, giữ phiên</td><td><span class="chip web">web</span> supabase-js</td><td>SDK tự làm mới token, lưu phiên.</td></tr>
+            <tr><td>Đọc, ghi dữ liệu thường</td><td><span class="chip web">web</span> supabase-js → PostgREST</td><td>RLS chặn theo tenant. Không cần server ở giữa.</td></tr>
+            <tr><td>Ghi thứ người dùng không được tự sửa (thành viên, quyền, hạn mức)</td><td><span class="chip supa">RPC</span> <code>security definer</code></td><td>Luật nằm trong DB, có test pgTAP.</td></tr>
+            <tr><td>Tải file lên, xem file</td><td><span class="chip cf">Worker</span> + R2</td><td>Kiểm quyền bằng RLS rồi mới đụng tới R2.</td></tr>
+            <tr><td>Gọi AI hoặc API trả phí</td><td><span class="chip cf">Worker</span></td><td>Giữ API key. Trừ hạn mức trước khi gọi.</td></tr>
+            <tr><td>Việc nền sau một request</td><td><span class="chip cf">Worker</span> <code>ctx.waitUntil</code></td><td>Queues cần gói Workers Paid.</td></tr>
+            <tr><td>Quét định kỳ, thử lại, hết hạn</td><td><span class="chip cf">Cron</span> mỗi 15 phút</td><td>Cũng giữ project Supabase Free không bị tạm dừng.</td></tr>
+            <tr><td>Xoá có dọn file</td><td><span class="chip cf">Worker</span>: RPC rồi xoá R2</td><td>Trình duyệt không có quyền xoá R2.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section id="co-che" aria-labelledby="h-co-che">
+      <h2 id="h-co-che"><span class="num">02</span>Bảy cơ chế cốt lõi</h2>
+      <p class="intro">Đây là phần chép nguyên sang app khác. Mỗi cơ chế ghi file tham chiếu trong repo WhatWhere.</p>
+      <div class="mech">
+        <article>
+          <h3>Đăng nhập bằng email OTP <span class="chip supa">Supabase</span></h3>
+          <p>Một email chứa cả link và mã 6 số. Trên iPhone, link mở Safari chứ không mở app PWA đã cài, nên người dùng gõ mã vào app. Web dùng <code>signInWithOtp</code> và <code>verifyOtp</code> của supabase-js, luồng implicit mặc định.</p>
+          <p class="ref">Tham chiếu: <code>apps/web/src/lib/supabase.ts</code>, <code>lib/backend.ts</code>, <code>supabase/templates/sign_in.html</code></p>
+        </article>
+        <article>
+          <h3>Worker kiểm JWT bằng JWKS <span class="chip cf">Worker</span></h3>
+          <p>Worker không gọi DB để biết ai đang gọi. Nó kiểm chữ ký bằng khoá công khai của Supabase, issuer phải khớp tuyệt đối, audience là <code>authenticated</code>. Chỉ nhận khoá bất đối xứng (ES256); token HS256 bị từ chối.</p>
+            <div class="code-wrap">
+            <div class="code-label"><span>middleware/auth.ts (rút gọn)</span></div>
+            <pre class="code"><code>const issuer = `${env.SUPABASE_URL}/auth/v1`;
+const jwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`)); <span class="c">// cache theo isolate</span>
+const { payload } = await jwtVerify(token, jwks, {
+  issuer,
+  audience: 'authenticated',
+  requiredClaims: ['exp', 'sub'],
+});
+c.set('user', { id: payload.sub, token }); <span class="c">// lỗi → 401 {"error":"unauthorized"}</span></code></pre>
+          </div>
+          <p class="ref">Tham chiếu: <code>apps/worker/src/middleware/auth.ts</code></p>
+        </article>
+        <article>
+          <h3>Dữ liệu chia theo tenant, RLS là hàng rào <span class="chip supa">Postgres</span></h3>
+          <p>Mọi bảng có cột tenant (WhatWhere: <code>household_id</code>). Bảng con dùng khoá ngoại ghép <code>(household_id, id)</code>. <code>anon</code> không có quyền gì. Quyền của <code>authenticated</code> bị thu hết rồi cấp lại theo từng cột, nên RLS không phải lớp chặn duy nhất. Bảng mà web không được ghi (thành viên, quyền, hạn mức) chỉ đổi qua RPC <code>security definer</code> với <code>search_path = ''</code>.</p>
+          <div class="code-wrap">
+            <div class="code-label"><span>Mẫu migration RLS</span></div>
+            <pre class="code"><code>create function public.auth_tenant_id() returns uuid
+language sql stable security definer set search_path = '' as $$
+  select m.tenant_id from public.members m where m.user_id = auth.uid()
+$$;
+
+alter table public.notes enable row level security;
+revoke all on public.notes from anon, authenticated;
+grant select, delete on public.notes to authenticated;
+grant insert (tenant_id, body), update (body) on public.notes to authenticated;
+create policy notes_rw on public.notes for all to authenticated
+  using (tenant_id = public.auth_tenant_id())
+  with check (tenant_id = public.auth_tenant_id());</code></pre>
+          </div>
+          <p class="ref">Tham chiếu: <code>supabase/migrations/0002_rls.sql</code>, <code>supabase/tests/rls_*.test.sql</code></p>
+        </article>
+        <article>
+          <h3>Hai client Supabase trong Worker <span class="chip cf">Worker</span></h3>
+          <p><code>userClient(env, token)</code> dùng publishable key cộng JWT của người dùng, nên RLS vẫn áp dụng. Mọi việc làm thay người dùng đi qua client này. <code>serviceClient(env)</code> dùng secret key, vượt RLS, chỉ dành cho việc nền (xử lý AI, cron) và trừ hạn mức.</p>
+          <p class="ref">Tham chiếu: <code>apps/worker/src/lib/supabase.ts</code>, <code>lib/pipeline-db.ts</code></p>
+        </article>
+        <article>
+          <h3>File private trên R2 <span class="chip cf">R2</span></h3>
+          <p>Key không lưu trong DB mà suy ra từ dữ liệu: <code>{tenant}/{sha256}-{full|thumb}.{ext}</code>. Client tự thu nhỏ ảnh và tính SHA-256. Worker tính lại để đối chiếu, kiểm kích thước và hạn mức, ghi R2, rồi chèn dòng DB bằng JWT người dùng. Khi xem, Worker tìm dòng bằng RLS trước (tìm thấy nghĩa là có quyền), rồi trả file với <code>Cache-Control: private, immutable</code>. Thẻ <code>&lt;img&gt;</code> không gửi được header Authorization, nên web tải blob kèm token rồi cache trên máy.</p>
+          <p class="ref">Tham chiếu: <code>apps/worker/src/routes/photos.ts</code>, <code>lib/r2.ts</code>, <code>apps/web/src/lib/api/photo-url.ts</code></p>
+        </article>
+        <article>
+          <h3>Hạn mức chỉ thi hành ở Worker <span class="chip supa">RPC</span> <span class="chip cf">Worker</span></h3>
+          <p>Bảng <code>plans</code> (giới hạn dạng jsonb), <code>grants</code> theo người, <code>ai_usage</code> theo kỳ. Hàm <code>household_entitlement()</code> gộp quyền của mọi thành viên. Worker gọi <code>reserve_ai_credit</code> trước khi gọi AI và <code>release_ai_credit</code> khi lỗi, bằng service role. Hết hạn mức thì giảm chức năng (đánh dấu chờ, tìm kém thông minh hơn), không báo lỗi.</p>
+          <p class="ref">Tham chiếu: <code>supabase/migrations/0003_functions.sql</code>, <code>0004_plans.sql</code>, <code>docs/SPEC.md</code> mục 8c</p>
+        </article>
+        <article>
+          <h3>Hợp đồng lỗi và lớp Backend <span class="chip web">web</span></h3>
+          <p>Worker luôn trả <code>{"error": "&lt;code&gt;"}</code> (<code>unauthorized</code>, <code>rate_limited</code>, <code>too_large</code>, <code>read_only</code>…). RPC báo lỗi bằng SQLSTATE (42501, 23505, 53400, P0002…). Web quy cả hai về một bộ mã <code>BackendErrorCode</code>. Giao diện chỉ thấy interface <code>Backend</code>, nên test dùng backend giả và chế độ demo (<code>VITE_DEMO=1</code>) chạy được không cần dịch vụ nào.</p>
+          <p class="ref">Tham chiếu: <code>apps/web/src/lib/backend.ts</code>, <code>lib/backend-error.ts</code>, <code>src/dev/demo-backend.ts</code>, <code>packages/shared/src/api.ts</code></p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section id="cau-truc" aria-labelledby="h-cau-truc">
+      <h2 id="h-cau-truc"><span class="num">03</span>Cấu trúc repo</h2>
+      <p class="intro">npm workspaces, Node 24. Thư mục giống nhau ở mọi app để người và agent đều biết tìm gì ở đâu.</p>
+      <div class="code-wrap">
+        <div class="code-label"><span>cây thư mục</span></div>
+        <pre class="code"><code><span class="v" data-v="app">whatwhere</span>/
+├─ apps/
+│  ├─ web/                    <span class="c">React + Vite PWA</span>
+│  │  ├─ src/app/             <span class="c">shell, router, guards</span>
+│  │  ├─ src/features/&lt;x&gt;/    <span class="c">mỗi nghiệp vụ một thư mục</span>
+│  │  ├─ src/lib/             <span class="c">api, backend, db (Dexie), offline, outbox, i18n, pwa</span>
+│  │  ├─ src/dev/             <span class="c">backend demo (VITE_DEMO)</span>
+│  │  ├─ .env.example         <span class="c">tên biến VITE_*, không giá trị</span>
+│  │  └─ vite.config.ts       <span class="c">cổng cố định, proxy /api</span>
+│  └─ worker/                 <span class="c">Cloudflare Worker (Hono)</span>
+│     ├─ src/index.ts         <span class="c">/api/* → routes, còn lại → ASSETS</span>
+│     ├─ src/routes/ middleware/ jobs/ lib/
+│     ├─ test/                <span class="c">vitest: node + workers pool</span>
+│     ├─ .dev.vars.example
+│     └─ wrangler.jsonc
+├─ packages/shared/           <span class="c">hợp đồng API (zod), giới hạn, enum; không cần build</span>
+├─ supabase/
+│  ├─ config.toml             <span class="c">site_url, OTP, template email, cổng local</span>
+│  ├─ migrations/NNNN_*.sql   <span class="c">chỉ tiến, có comment hợp đồng ở đầu file</span>
+│  ├─ tests/*.test.sql        <span class="c">pgTAP cho RLS và RPC</span>
+│  └─ templates/sign_in.html
+├─ scripts/smoke.sh
+├─ .github/workflows/ci.yml, deploy.yml
+└─ docs/ SPEC.md, TECH-PLAN.md, QUESTIONS.md, LAUNCH.md</code></pre>
+      </div>
+
+      <h3>Hai file định hình cả hệ thống</h3>
+      <div class="code-wrap">
+        <div class="code-label"><span>apps/worker/wrangler.jsonc</span></div>
+        <pre class="code"><code>{
+  "name": "<span class="v" data-v="app">whatwhere</span>",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-28",
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "r2_buckets": [
+    { "binding": "FILES", "bucket_name": "<span class="v" data-v="app">whatwhere</span>-files", "jurisdiction": "<span class="v" data-v="region">eu</span>" }
+  ],
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "dev": { "port": <span class="v" data-v="workerport">8787</span> },
+  "observability": { "enabled": true }
+}</code></pre>
+      </div>
+      <p class="ref">WhatWhere đặt tên binding là <code>PHOTOS</code> và bucket là <code>whatwhere-photos</code>, và chưa đặt <code>dev.port</code> (dùng mặc định 8787).</p>
+      <div class="code-wrap">
+        <div class="code-label"><span>apps/worker/src/index.ts</span></div>
+        <pre class="code"><code>export const app = new Hono&lt;AppEnv&gt;();
+app.use('/api/*', requestLogger());
+app.route('/api', api);                                  <span class="c">// health, routes theo nghiệp vụ</span>
+app.all('/api/*', (c) =&gt; c.json({ error: 'not_found' }, 404));
+app.all('*', (c) =&gt; c.env.ASSETS.fetch(c.req.raw));      <span class="c">// SPA</span>
+app.onError((err, c) =&gt; c.json({ error: 'internal' }, 500));
+
+export default { fetch: app.fetch, scheduled: (_e, env) =&gt; sweep(env) };</code></pre>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section id="moi-truong" aria-labelledby="h-moi-truong">
+      <h2 id="h-moi-truong"><span class="num">04</span>Môi trường và cổng</h2>
+      <p class="intro">Local chạy đủ ba phần: Supabase trong Docker, Worker bằng <code>wrangler dev</code>, Vite có proxy <code>/api</code>. Production chỉ có một địa chỉ.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Phần</th><th>Local</th><th>Production</th></tr></thead>
+          <tbody>
+            <tr><td>Giao diện</td><td><code>http://localhost:<span class="v" data-v="port">5973</span></code> (Vite)</td><td><code>https://<span class="v" data-v="domain">whatwhere.example.com</span></code> (Worker assets)</td></tr>
+            <tr><td>API</td><td>Vite proxy <code>/api</code> → <code>http://localhost:<span class="v" data-v="workerport">8787</span></code></td><td><code>https://<span class="v" data-v="domain">whatwhere.example.com</span>/api</code></td></tr>
+            <tr><td>Supabase API</td><td><code>http://127.0.0.1:54321</code></td><td><code>https://&lt;ref&gt;.supabase.co</code></td></tr>
+            <tr><td>Postgres</td><td><code>127.0.0.1:54322</code></td><td>Project Supabase, cùng vùng với R2</td></tr>
+            <tr><td>Studio</td><td><code>http://127.0.0.1:54323</code></td><td>Dashboard Supabase</td></tr>
+            <tr><td>Email đăng nhập</td><td>Mailpit <code>http://127.0.0.1:54324</code></td><td>SMTP riêng</td></tr>
+            <tr><td>File</td><td>R2 giả lập của <code>wrangler dev</code></td><td>Bucket <code><span class="v" data-v="app">whatwhere</span>-files</code>, jurisdiction <code><span class="v" data-v="region">eu</span></code></td></tr>
+            <tr><td>Chạy thử không dịch vụ</td><td><code>npm run dev:demo</code>, <code>dev:demo:lan</code> (HTTPS cho điện thoại)</td><td>Không có trong bản build</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Chạy nhiều app cùng lúc</h3>
+      <p>Mỗi app một khối cổng riêng, ghi vào bảng này của tổ chức. Supabase local còn cần <code>project_id</code> khác nhau trong <code>config.toml</code> vì tên container Docker lấy từ đó.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>App</th><th>Vite</th><th>wrangler dev</th><th>Supabase (API, DB, Studio, Mailpit)</th></tr></thead>
+          <tbody>
+            <tr><td>whatwhere</td><td class="num">5973</td><td class="num">8787</td><td class="num">54321 · 54322 · 54323 · 54324</td></tr>
+            <tr><td>app thứ hai (gợi ý)</td><td class="num">5974</td><td class="num">8788</td><td class="num">55321 · 55322 · 55323 · 55324</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-wrap">
+        <div class="code-label"><span>apps/web/vite.config.ts</span></div>
+        <pre class="code"><code>server: {
+  port: <span class="v" data-v="port">5973</span>,
+  strictPort: true, <span class="c">// cổng bận thì báo lỗi, không tự nhảy (redirect của Supabase chỉ nhận cổng này)</span>
+  proxy: { '/api': 'http://localhost:<span class="v" data-v="workerport">8787</span>' },
+},
+preview: { port: <span class="v" data-v="port">5973</span>, strictPort: true },</code></pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-label"><span>supabase/config.toml (phần auth)</span></div>
+        <pre class="code"><code>project_id = "<span class="v" data-v="app">whatwhere</span>"
+
+[auth]
+site_url = "http://localhost:<span class="v" data-v="port">5973</span>"
+additional_redirect_urls = ["http://localhost:<span class="v" data-v="port">5973</span>/**", "http://127.0.0.1:<span class="v" data-v="port">5973</span>/**"]
+jwt_expiry = 3600
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+otp_length = 6
+
+[auth.email.template.magic_link]
+subject = "<span class="v" data-v="app">whatwhere</span> · Mã đăng nhập"
+content_path = "./supabase/templates/sign_in.html"
+
+[auth.email.template.confirmation]
+subject = "<span class="v" data-v="app">whatwhere</span> · Mã đăng nhập"
+content_path = "./supabase/templates/sign_in.html"</code></pre>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section id="bien" aria-labelledby="h-bien">
+      <h2 id="h-bien"><span class="num">05</span>Biến và secret</h2>
+      <p class="intro">Repo chỉ chứa tên biến (<code>.env.example</code>, <code>.dev.vars.example</code>). Chỉ dùng key kiểu mới <code>sb_publishable_…</code> và <code>sb_secret_…</code>, không dùng <code>anon</code> hay <code>service_role</code> kiểu cũ.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tên</th><th>Loại</th><th>Local</th><th>Production</th></tr></thead>
+          <tbody>
+            <tr><td><code>VITE_SUPABASE_URL</code></td><td><span class="tag pub">công khai</span></td><td><code>apps/web/.env.local</code> = <code>http://127.0.0.1:54321</code></td><td>GitHub secret, nhúng lúc build</td></tr>
+            <tr><td><code>VITE_SUPABASE_PUBLISHABLE_KEY</code></td><td><span class="tag pub">công khai</span></td><td><code>.env.local</code>, lấy từ <code>supabase status</code></td><td>GitHub secret, nhúng lúc build</td></tr>
+            <tr><td><code>SUPABASE_URL</code></td><td><span class="tag pub">công khai</span></td><td><code>apps/worker/.dev.vars</code>, đúng <code>http://127.0.0.1:54321</code></td><td><code>wrangler secret put</code></td></tr>
+            <tr><td><code>SUPABASE_PUBLISHABLE_KEY</code></td><td><span class="tag pub">công khai</span></td><td><code>.dev.vars</code></td><td><code>wrangler secret put</code></td></tr>
+            <tr><td><code>SUPABASE_SECRET_KEY</code></td><td><span class="tag sec">bí mật</span></td><td><code>.dev.vars</code></td><td><code>wrangler secret put</code>. Không bao giờ có tiền tố <code>VITE_</code>.</td></tr>
+            <tr><td><code>GEMINI_API_KEY</code> (hoặc key API ngoài khác)</td><td><span class="tag sec">bí mật</span></td><td><code>.dev.vars</code></td><td><code>wrangler secret put</code></td></tr>
+            <tr><td><code>GEMINI_VISION_MODEL</code>, <code>GEMINI_TEXT_MODEL</code></td><td><span class="tag pub">cấu hình</span></td><td colspan="2"><code>vars</code> trong <code>wrangler.jsonc</code>. Rỗng thì tính năng AI tự tắt, không lỗi.</td></tr>
+            <tr><td><code>CLOUDFLARE_API_TOKEN</code>, <code>CLOUDFLARE_ACCOUNT_ID</code></td><td><span class="tag sec">bí mật</span></td><td>Không cần (<code>wrangler login</code>)</td><td>GitHub secret, cho <code>wrangler deploy</code></td></tr>
+            <tr><td><code>SUPABASE_ACCESS_TOKEN</code>, <code>SUPABASE_DB_PASSWORD</code>, <code>SUPABASE_PROJECT_REF</code></td><td><span class="tag sec">bí mật</span></td><td>Không cần (<code>supabase login</code>)</td><td>GitHub secret, cho <code>link</code> và <code>db push</code></td></tr>
+            <tr><td><code>PRODUCTION_URL</code></td><td><span class="tag pub">biến GitHub</span></td><td>–</td><td><code>https://<span class="v" data-v="domain">whatwhere.example.com</span></code>, cho smoke test</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section id="ke-hoach" aria-labelledby="h-ke-hoach">
+      <h2 id="h-ke-hoach"><span class="num">06</span>Kế hoạch triển khai</h2>
+      <p class="intro">Làm theo thứ tự. Đánh dấu khi xong; tiến độ lưu trong trình duyệt này, riêng cho app <code><span class="v" data-v="app">whatwhere</span></code>.</p>
+
+      <div class="phase" data-phase>
+        <header>
+          <h3>Giai đoạn 0 · Tài khoản và công cụ</h3>
+          <span class="when">Một lần cho mỗi người. Bỏ qua nếu đã có.</span>
+          <div class="progress" aria-live="polite"><span>0/5</span><div class="bar"><i></i></div></div>
+        </header>
+        <ol>
+          <li><input type="checkbox" id="p0-1"><label for="p0-1"><b>Tài khoản Cloudflare.</b> Ghi lại Account ID (Workers &amp; Pages, cột bên phải). Bật R2 có thể cần thêm phương thức thanh toán.</label></li>
+          <li><input type="checkbox" id="p0-2"><label for="p0-2"><b>Tổ chức Supabase.</b> Gói Free đủ để bắt đầu.</label></li>
+          <li><input type="checkbox" id="p0-3"><label for="p0-3"><b>Node 24 qua nvm và Docker Desktop.</b> Docker cần cho <code>supabase start</code>.</label></li>
+          <li><input type="checkbox" id="p0-4"><div><label for="p0-4"><b>Đăng nhập hai CLI.</b> Cả hai CLI cài theo repo (devDependency), không cài toàn cục.</label>
+            <div class="code-wrap"><pre class="code"><code>npx wrangler login
+npx supabase login</code></pre></div></div></li>
+          <li><input type="checkbox" id="p0-5"><label for="p0-5"><b>Chọn vùng dữ liệu.</b> Region của Supabase và jurisdiction của R2 phải cùng vùng (WhatWhere: EU). Jurisdiction của bucket R2 không đổi được sau khi tạo.</label></li>
+        </ol>
+      </div>
+
+      <div class="phase" data-phase>
+        <header>
+          <h3>Giai đoạn 1 · Dựng khung repo</h3>
+          <span class="when">Cho app mới. WhatWhere đã xong.</span>
+          <div class="progress" aria-live="polite"><span>0/8</span><div class="bar"><i></i></div></div>
+        </header>
+        <ol>
+          <li><input type="checkbox" id="p1-1"><label for="p1-1"><b>npm workspaces</b> <code>apps/web</code>, <code>apps/worker</code>, <code>packages/shared</code>, rồi <code>npx supabase init</code> ở gốc. Đặt <code>project_id</code> và các cổng theo bảng ở mục 04.</label></li>
+          <li><input type="checkbox" id="p1-2"><label for="p1-2"><b>Vite</b>: cổng <code><span class="v" data-v="port">5973</span></code> với <code>strictPort</code>, proxy <code>/api</code>. PWA: <code>navigateFallbackDenylist: [/^\/api\//]</code>.</label></li>
+          <li><input type="checkbox" id="p1-3"><label for="p1-3"><b>Worker</b>: <code>wrangler.jsonc</code> và <code>src/index.ts</code> theo mẫu ở mục 03. Chép nguyên <code>middleware/auth.ts</code>, <code>lib/supabase.ts</code>, <code>lib/log.ts</code>, <code>lib/rate-limit.ts</code>.</label></li>
+          <li><input type="checkbox" id="p1-4"><label for="p1-4"><b>Migration đầu tiên</b>: bảng có cột tenant, trigger tạo profile khi có user mới, RLS và helper <code>auth_&lt;tenant&gt;_id()</code>. Mỗi bảng một file test pgTAP.</label></li>
+          <li><input type="checkbox" id="p1-5"><label for="p1-5"><b>Dữ liệu tham chiếu</b> (gói, danh mục cố định) để trong migration với <code>on conflict do nothing</code>. <code>db push</code> không chạy <code>seed.sql</code>.</label></li>
+          <li><input type="checkbox" id="p1-6"><label for="p1-6"><b>File mẫu biến</b>: <code>apps/web/.env.example</code> và <code>apps/worker/.dev.vars.example</code>, chỉ tên biến và chú thích lấy giá trị ở đâu.</label></li>
+          <li><input type="checkbox" id="p1-7"><label for="p1-7"><b>CI/CD</b>: chép <code>.github/workflows/ci.yml</code>, <code>deploy.yml</code> và <code>scripts/smoke.sh</code>, đổi tên app và chuỗi mà smoke test tìm trong HTML.</label></li>
+          <li><input type="checkbox" id="p1-8"><label for="p1-8"><b>Lớp Backend và chế độ demo</b>: interface <code>Backend</code>, bản Supabase, bản giả cho test, bản demo bật bằng <code>VITE_DEMO=1</code>.</label></li>
+        </ol>
+      </div>
+
+      <div class="phase" data-phase>
+        <header>
+          <h3>Giai đoạn 2 · Chạy đủ vòng ở local</h3>
+          <span class="when">Trước khi đụng tới production.</span>
+          <div class="progress" aria-live="polite"><span>0/6</span><div class="bar"><i></i></div></div>
+        </header>
+        <ol>
+          <li><input type="checkbox" id="p2-1"><div><label for="p2-1"><b>Bật Supabase local</b> và lấy URL, key.</label>
+            <div class="code-wrap"><pre class="code"><code>npx supabase start
+npx supabase status</code></pre></div></div></li>
+          <li><input type="checkbox" id="p2-2"><label for="p2-2"><b>Điền</b> <code>apps/web/.env.local</code> và <code>apps/worker/.dev.vars</code>. URL phải là <code>http://127.0.0.1:54321</code>, không phải <code>localhost</code>.</label></li>
+          <li><input type="checkbox" id="p2-3"><div><label for="p2-3"><b>Chạy Worker và web</b> ở hai terminal.</label>
+            <div class="code-wrap"><pre class="code"><code>npm run dev:worker   <span class="c"># wrangler dev, cổng <span class="v" data-v="workerport">8787</span></span>
+npm run dev:web      <span class="c"># Vite, cổng <span class="v" data-v="port">5973</span></span></code></pre></div></div></li>
+          <li><input type="checkbox" id="p2-4"><label for="p2-4"><b>Đăng nhập thử</b> ở <code>http://localhost:<span class="v" data-v="port">5973</span></code>: nhập email, lấy mã trong Mailpit <code>http://127.0.0.1:54324</code>.</label></li>
+          <li><input type="checkbox" id="p2-5"><div><label for="p2-5"><b>Smoke test local</b> sau khi build web.</label>
+            <div class="code-wrap"><pre class="code"><code>npm run build
+scripts/smoke.sh http://localhost:<span class="v" data-v="workerport">8787</span></code></pre></div></div></li>
+          <li><input type="checkbox" id="p2-6"><div><label for="p2-6"><b>Toàn bộ test qua.</b></label>
+            <div class="code-wrap"><pre class="code"><code>npx supabase test db
+npm run lint &amp;&amp; npm run typecheck &amp;&amp; npm test</code></pre></div></div></li>
+        </ol>
+      </div>
+
+      <div class="phase" data-phase>
+        <header>
+          <h3>Giai đoạn 3 · Supabase production <span class="side"><span class="chip supa">Supabase</span></span></h3>
+          <span class="when">Khoảng 30 phút, làm trên dashboard.</span>
+          <div class="progress" aria-live="polite"><span>0/9</span><div class="bar"><i></i></div></div>
+        </header>
+        <ol>
+          <li><input type="checkbox" id="p3-1"><label for="p3-1"><b>Tạo project</b> trong vùng đã chọn. Lưu mật khẩu DB vào trình quản lý mật khẩu.</label></li>
+          <li><input type="checkbox" id="p3-2"><label for="p3-2"><b>Settings › API Keys</b>: ghi Project URL, publishable key và secret key.</label></li>
+          <li><input type="checkbox" id="p3-3"><label for="p3-3"><b>Settings › JWT Signing Keys</b>: xác nhận đang dùng khoá bất đối xứng (ES256). Worker chỉ kiểm qua JWKS.</label></li>
+          <li><input type="checkbox" id="p3-4"><label for="p3-4"><b>Authentication › Providers › Email</b>: bật, độ dài OTP 6. Tắt "Confirm email" nếu muốn ít bước.</label></li>
+          <li><input type="checkbox" id="p3-5"><label for="p3-5"><b>Authentication › Email Templates</b>: dán <code>supabase/templates/sign_in.html</code> vào cả Magic Link và Confirm signup. Template phải có <code>{{ .Token }}</code>.</label></li>
+          <li><input type="checkbox" id="p3-6"><label for="p3-6"><b>Authentication › URL Configuration</b>: Site URL <code>https://<span class="v" data-v="domain">whatwhere.example.com</span></code>. Redirect URLs thêm <code>https://<span class="v" data-v="domain">whatwhere.example.com</span>/**</code> và <code>http://localhost:<span class="v" data-v="port">5973</span>/**</code>.</label></li>
+          <li><input type="checkbox" id="p3-7"><label for="p3-7"><b>SMTP riêng</b> (Resend, Postmark…) trước khi mời người thật. Email mặc định của Supabase giới hạn rất thấp mỗi giờ.</label></li>
+          <li><input type="checkbox" id="p3-8"><label for="p3-8"><b>Account › Access Tokens</b>: tạo token cho CI. Ghi project ref (phần đầu của URL project).</label></li>
+          <li><input type="checkbox" id="p3-9"><div><label for="p3-9"><b>Đẩy schema lần đầu</b> từ máy mình.</label>
+            <div class="code-wrap"><pre class="code"><code>npx supabase link --project-ref &lt;ref&gt;
+npx supabase db push</code></pre></div></div></li>
+        </ol>
+      </div>
+
+      <div class="phase" data-phase>
+        <header>
+          <h3>Giai đoạn 4 · Cloudflare production <span class="side"><span class="chip cf">Cloudflare</span></span></h3>
+          <span class="when">Lần deploy đầu làm tay, các lần sau để CI làm.</span>
+          <div class="progress" aria-live="polite"><span>0/7</span><div class="bar"><i></i></div></div>
+        </header>
+        <ol>
+          <li><input type="checkbox" id="p4-1"><div><label for="p4-1"><b>Tạo bucket R2</b>, không bật truy cập công khai (r2.dev).</label>
+            <div class="code-wrap"><pre class="code"><code>npx wrangler r2 bucket create <span class="v" data-v="app">whatwhere</span>-files --jurisdiction <span class="v" data-v="region">eu</span></code></pre></div></div></li>
+          <li><input type="checkbox" id="p4-2"><label for="p4-2"><b>API token</b> từ mẫu "Edit Cloudflare Workers", dành cho CI.</label></li>
+          <li><input type="checkbox" id="p4-3"><div><label for="p4-3"><b>Build web với giá trị production</b> rồi deploy lần đầu. Lần này tạo ra Worker.</label>
+            <div class="code-wrap"><pre class="code"><code>VITE_SUPABASE_URL=https://&lt;ref&gt;.supabase.co \
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_... \
+npm run build -w @<span class="v" data-v="app">whatwhere</span>/web
+cd apps/worker &amp;&amp; npx wrangler deploy</code></pre></div></div></li>
+          <li><input type="checkbox" id="p4-4"><div><label for="p4-4"><b>Đặt secret cho Worker</b>, mỗi lệnh hỏi giá trị.</label>
+            <div class="code-wrap"><pre class="code"><code>cd apps/worker
+npx wrangler secret put SUPABASE_URL
+npx wrangler secret put SUPABASE_PUBLISHABLE_KEY
+npx wrangler secret put SUPABASE_SECRET_KEY
+npx wrangler secret put GEMINI_API_KEY</code></pre></div></div></li>
+          <li><input type="checkbox" id="p4-5"><label for="p4-5"><b>Tên miền</b>: Workers › <code><span class="v" data-v="app">whatwhere</span></code> › Settings › Domains &amp; Routes, thêm <code><span class="v" data-v="domain">whatwhere.example.com</span></code>. Tên miền phải nằm trong cùng tài khoản Cloudflare.</label></li>
+          <li><input type="checkbox" id="p4-6"><label for="p4-6"><b>Cập nhật Site URL của Supabase</b> nếu tên miền khác với giai đoạn 3.</label></li>
+          <li><input type="checkbox" id="p4-7"><div><label for="p4-7"><b>Smoke test production.</b></label>
+            <div class="code-wrap"><pre class="code"><code>scripts/smoke.sh https://<span class="v" data-v="domain">whatwhere.example.com</span></code></pre></div></div></li>
+        </ol>
+      </div>
+
+      <div class="phase" data-phase>
+        <header>
+          <h3>Giai đoạn 5 · CI/CD <span class="side"><span class="chip">GitHub Actions</span></span></h3>
+          <span class="when">Từ đây mỗi lần push lên main là một lần deploy.</span>
+          <div class="progress" aria-live="polite"><span>0/5</span><div class="bar"><i></i></div></div>
+        </header>
+        <ol>
+          <li><input type="checkbox" id="p5-1"><label for="p5-1"><b>GitHub › Settings › Secrets</b>: thêm 7 secret ở mục 05 (hai <code>VITE_*</code>, hai Cloudflare, ba Supabase).</label></li>
+          <li><input type="checkbox" id="p5-2"><label for="p5-2"><b>Environment <code>production</code></b> với người duyệt bắt buộc, và biến <code>PRODUCTION_URL</code>.</label></li>
+          <li><input type="checkbox" id="p5-3"><label for="p5-3"><b>Push lên main</b> và theo dõi: CI (lint, typecheck, build, test, pgTAP) xanh thì Deploy chạy: build web → <code>supabase link</code> → <code>db push</code> → <code>wrangler deploy</code> → smoke test.</label></li>
+          <li><input type="checkbox" id="p5-4"><label for="p5-4"><b>Chạy Deploy bằng tay</b> (workflow_dispatch) một lần. Workflow tự từ chối nếu commit chưa có CI xanh.</label></li>
+          <li><input type="checkbox" id="p5-5"><div><label for="p5-5"><b>Tập rollback</b> một lần. Migration chỉ tiến, không rollback, nên sửa DB bằng migration mới.</label>
+            <div class="code-wrap"><pre class="code"><code>cd apps/worker &amp;&amp; npx wrangler rollback</code></pre></div></div></li>
+        </ol>
+      </div>
+
+      <div class="phase" data-phase>
+        <header>
+          <h3>Giai đoạn 6 · Ra mắt và vận hành</h3>
+          <span class="when">Trước khi mời người dùng thật.</span>
+          <div class="progress" aria-live="polite"><span>0/6</span><div class="bar"><i></i></div></div>
+        </header>
+        <ol>
+          <li><input type="checkbox" id="p6-1"><label for="p6-1"><b>Bật Rate Limiting binding</b> cho các route tốn tiền (upload, AI). Đoạn trong <code>wrangler.jsonc</code> đã viết sẵn nhưng đang comment; code bỏ qua khi thiếu binding.</label></li>
+          <li><input type="checkbox" id="p6-2"><label for="p6-2"><b>Cảnh báo ngân sách</b> cho API AI (Google Cloud) và cho Cloudflare.</label></li>
+          <li><input type="checkbox" id="p6-3"><div><label for="p6-3"><b>Xem log</b>: mỗi request một dòng JSON, user id đã băm, không có token.</label>
+            <div class="code-wrap"><pre class="code"><code>npx wrangler tail <span class="v" data-v="app">whatwhere</span></code></pre></div></div></li>
+          <li><input type="checkbox" id="p6-4"><div><label for="p6-4"><b>Sao lưu</b>: kiểm chính sách backup của gói đang dùng. Gói Free không có khôi phục theo thời điểm, nên chạy dump định kỳ hoặc nâng gói trước khi có dữ liệu thật.</label>
+            <div class="code-wrap"><pre class="code"><code>npx supabase db dump --data-only -f backup-$(date +%F).sql</code></pre></div></div></li>
+          <li><input type="checkbox" id="p6-5"><label for="p6-5"><b>Xác nhận cron chạy</b> (Workers › Triggers). Lượt ping 15 phút giữ project Free không bị tạm dừng sau 7 ngày không có request.</label></li>
+          <li><input type="checkbox" id="p6-6"><label for="p6-6"><b>Thư cho tester</b> (<code>docs/LAUNCH.md</code>): điền địa chỉ app, mã tester, số ngày dùng thử và kênh góp ý.</label></li>
+        </ol>
+      </div>
+      <button type="button" class="copy" id="checks-reset">Bỏ đánh dấu mọi mục của app này</button>
+    </section>
+
+    <!-- 7 -->
+    <section id="quy-uoc" aria-labelledby="h-quy-uoc">
+      <h2 id="h-quy-uoc"><span class="num">07</span>Quy ước chung</h2>
+      <p class="intro">Giữ giống nhau ở mọi app để chép code qua lại không phải sửa.</p>
+      <ul class="plain">
+        <li><b>Cùng origin.</b> Một Worker phục vụ cả SPA và <code>/api</code>. Không CORS, không subdomain riêng cho API.</li>
+        <li><b>Migration</b> đặt tên <code>NNNN_tên.sql</code>, đầu file ghi hợp đồng (bảng, hàm, ai được gọi). Chỉ tiến, không có file rollback.</li>
+        <li><b>Mỗi policy RLS và mỗi RPC</b> có test pgTAP trong <code>supabase/tests/</code>. CI chạy <code>supabase test db</code>.</li>
+        <li><b>Hàm mới</b>: thu quyền EXECUTE mặc định rồi cấp lại rõ ràng cho đúng role.</li>
+        <li><b><code>packages/shared</code></b> chứa hợp đồng API bằng zod, giới hạn và enum dùng chung cho web và Worker. Xuất thẳng TypeScript, không cần build.</li>
+        <li><b>Lỗi</b>: Worker trả <code>{"error": code}</code>, RPC dùng SQLSTATE, web quy về một bộ mã duy nhất.</li>
+        <li><b>Log</b>: một dòng JSON mỗi request, không ghi token hay email.</li>
+        <li><b>Commit</b> theo Conventional Commits, scope <code>web</code>, <code>worker</code>, <code>db</code>, <code>shared</code>, <code>docs</code>, <code>tools</code>.</li>
+        <li><b>Câu hỏi còn mở</b> ghi vào <code>docs/QUESTIONS.md</code>; quyết định đã chốt nằm trong mục 2 của <code>docs/SPEC.md</code>.</li>
+        <li><b>Cổng dev cố định</b> với <code>strictPort</code>, mỗi app một khối cổng (mục 04).</li>
+      </ul>
+    </section>
+
+    <!-- 8 -->
+    <section id="bay" aria-labelledby="h-bay">
+      <h2 id="h-bay"><span class="num">08</span>Bẫy đã gặp</h2>
+      <p class="intro">Mỗi mục đều đã tốn thời gian ở WhatWhere. Cách tránh ghi ngay bên dưới.</p>
+      <ol class="gotchas">
+        <li><div><b>Issuer của JWT phải khớp tuyệt đối.</b><p>Local dùng <code>http://127.0.0.1:54321</code> ở cả web và Worker. Mở web bằng <code>localhost</code> thì token mang issuer khác và Worker trả 401.</p></div></li>
+        <li><div><b><code>db push</code> không chạy <code>seed.sql</code>.</b><p>Dữ liệu tham chiếu mà production cần (gói, danh mục) phải nằm trong migration.</p></div></li>
+        <li><div><b>Jurisdiction của R2 không đổi được.</b><p>Chọn sai vùng thì phải tạo bucket mới và chép dữ liệu.</p></div></li>
+        <li><div><b>Thẻ <code>&lt;img&gt;</code> không gửi được Authorization.</b><p>Tải blob bằng fetch có token rồi dùng object URL, cache trên máy. Hoặc dùng signed URL nếu chấp nhận link lộ ra được.</p></div></li>
+        <li><div><b>Supabase Free tạm dừng project sau 7 ngày không có request.</b><p>Cron của Worker ping DB mỗi 15 phút.</p></div></li>
+        <li><div><b>Biến <code>VITE_*</code> được nhúng lúc build.</b><p>Đổi giá trị thì phải build và deploy lại. Secret không bao giờ được có tiền tố <code>VITE_</code>.</p></div></li>
+        <li><div><b>Thiếu <code>run_worker_first: ["/api/*"]</code> thì SPA fallback nuốt API.</b><p><code>/api/abc</code> trả về <code>index.html</code> thay vì JSON. Smoke test kiểm đúng điều này bằng <code>/api/nope</code>.</p></div></li>
+        <li><div><b>Service worker của PWA cũng nuốt <code>/api</code>.</b><p>Thêm <code>navigateFallbackDenylist: [/^\/api\//]</code> và không precache gì dưới <code>/api</code>.</p></div></li>
+        <li><div><b>Link đăng nhập mở Safari, không mở PWA trên iPhone.</b><p>Email gửi kèm mã 6 số (<code>{{ .Token }}</code>) và màn đăng nhập có ô nhập mã.</p></div></li>
+        <li><div><b>Queues cần gói Workers Paid.</b><p>Dùng <code>ctx.waitUntil</code> cho việc nền, cron quét lại việc bị kẹt.</p></div></li>
+        <li><div><b>Supabase cấp quyền EXECUTE mặc định cho mọi function mới.</b><p>Hàm chỉ dành cho service role vẫn gọi được từ web nếu quên thu quyền.</p></div></li>
+        <li><div><b>Hai stack Supabase local cùng lúc đụng nhau.</b><p>Đổi <code>project_id</code> và các cổng trong <code>config.toml</code>; app thứ hai còn cần cổng <code>wrangler dev</code> và proxy Vite riêng.</p></div></li>
+        <li><div><b>Điện thoại trong mạng LAN cần HTTPS.</b><p><code>crypto.subtle</code>, <code>crypto.randomUUID</code> và micro chỉ có trong secure context. Chế độ <code>dev:demo:lan</code> dùng chứng chỉ tự ký.</p></div></li>
+      </ol>
+    </section>
+
+    <!-- 9 -->
+    <section id="app-moi" aria-labelledby="h-app-moi">
+      <h2 id="h-app-moi"><span class="num">09</span>Áp dụng cho app mới</h2>
+      <p class="intro">Trả lời sáu câu này trước khi dựng khung. Câu trả lời quyết định phần nào của khuôn giữ, phần nào bỏ.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Câu hỏi</th><th>WhatWhere chọn</th><th>Nếu app mới khác</th></tr></thead>
+          <tbody>
+            <tr><td>Dữ liệu chia theo đơn vị nào?</td><td><code>household</code>, mỗi người một nhà</td><td>Đổi tên cột tenant (<code>team_id</code>, <code>workspace_id</code>) và helper RLS. Nhiều tenant mỗi người thì helper trả về tập id.</td></tr>
+            <tr><td>Đăng nhập thế nào?</td><td>Email OTP (link + mã)</td><td>Thêm OAuth ở Supabase; Worker không đổi vì vẫn kiểm JWT như cũ.</td></tr>
+            <tr><td>Có file không?</td><td>Có: ảnh hai cỡ trên R2</td><td>Không có thì bỏ binding R2 và route file.</td></tr>
+            <tr><td>Có gọi API trả phí không?</td><td>Gemini, qua Worker</td><td>Giữ mẫu reserve/release hạn mức; đổi adapter.</td></tr>
+            <tr><td>Có gói và hạn mức không?</td><td><code>plans</code>, <code>grants</code>, mã kích hoạt</td><td>Không có thì bỏ <code>0003</code>, <code>0004</code>, <code>0014</code> và phần entitlement.</td></tr>
+            <tr><td>Cần chạy offline không?</td><td>Có: Dexie + outbox</td><td>Không cần thì bỏ <code>lib/offline</code>, <code>lib/outbox</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Chép từ WhatWhere gần như nguyên</h3>
+      <ul class="plain">
+        <li><code>apps/worker/src/middleware/auth.ts</code>, <code>lib/supabase.ts</code>, <code>lib/log.ts</code>, <code>lib/rate-limit.ts</code>, <code>src/index.ts</code></li>
+        <li><code>apps/web/src/lib/supabase.ts</code>, <code>lib/backend-error.ts</code>, khung của <code>lib/backend.ts</code></li>
+        <li><code>supabase/config.toml</code> (phần auth), <code>supabase/templates/sign_in.html</code>, mẫu RLS của <code>0002_rls.sql</code></li>
+        <li><code>.github/workflows/ci.yml</code>, <code>deploy.yml</code>, <code>scripts/smoke.sh</code></li>
+        <li><code>.env.example</code>, <code>.dev.vars.example</code>, <code>.nvmrc</code></li>
+      </ul>
+    </section>
+
+    <footer>
+      Nguồn: repo <code>whatwhere</code>, nhánh <code>main</code> tại <code>0bcccd6</code> (4/10/2026). Các file tham chiếu: <code>docs/TECH-PLAN.md</code> phần A và C, <code>docs/SPEC.md</code> mục 7, 8, 8c. Khi khuôn thay đổi ở một app, cập nhật trang này để app sau dùng bản mới.
+    </footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  var DEFAULTS = { app: 'whatwhere', domain: 'whatwhere.example.com', port: '5973', workerport: '8787', region: 'eu' };
+  var CLEAN = {
+    app: function (v) { return v.toLowerCase().replace(/[^a-z0-9-]/g, ''); },
+    domain: function (v) { return v.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, ''); },
+    port: function (v) { return v.replace(/\D/g, '').slice(0, 5); },
+    workerport: function (v) { return v.replace(/\D/g, '').slice(0, 5); },
+    region: function (v) { return v.toLowerCase().replace(/[^a-z-]/g, ''); }
+  };
+
+  function read(key, fallback) {
+    try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; }
+  }
+  function write(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage unavailable */ }
+  }
+
+  var vars = Object.assign({}, DEFAULTS, read('sbcf.vars', {}));
+  var form = document.getElementById('vars');
+
+  function applyVars() {
+    document.querySelectorAll('[data-v]').forEach(function (el) {
+      var key = el.getAttribute('data-v');
+      el.textContent = vars[key] || DEFAULTS[key];
+    });
+  }
+
+  function checksKey() { return 'sbcf.checks.' + (vars.app || DEFAULTS.app); }
+
+  function loadChecks() {
+    var done = read(checksKey(), {});
+    document.querySelectorAll('.phase input[type="checkbox"]').forEach(function (box) {
+      box.checked = Boolean(done[box.id]);
+    });
+    updateProgress();
+  }
+
+  function saveChecks() {
+    var done = {};
+    document.querySelectorAll('.phase input[type="checkbox"]').forEach(function (box) {
+      if (box.checked) done[box.id] = true;
+    });
+    write(checksKey(), done);
+  }
+
+  function updateProgress() {
+    document.querySelectorAll('[data-phase]').forEach(function (phase) {
+      var boxes = phase.querySelectorAll('input[type="checkbox"]');
+      var n = 0;
+      boxes.forEach(function (box) {
+        box.closest('li').classList.toggle('done', box.checked);
+        if (box.checked) n += 1;
+      });
+      phase.querySelector('.progress span').textContent = n + '/' + boxes.length;
+      phase.querySelector('.bar i').style.width = (boxes.length ? (n / boxes.length) * 100 : 0) + '%';
+    });
+  }
+
+  Object.keys(DEFAULTS).forEach(function (key) {
+    var input = form.elements[key];
+    input.value = vars[key];
+    input.addEventListener('input', function () {
+      var clean = CLEAN[key](input.value);
+      vars[key] = clean;
+      write('sbcf.vars', vars);
+      applyVars();
+      if (key === 'app') loadChecks();
+    });
+    input.addEventListener('blur', function () { input.value = vars[key] || DEFAULTS[key]; });
+  });
+  form.addEventListener('submit', function (e) { e.preventDefault(); });
+
+  document.getElementById('vars-reset').addEventListener('click', function () {
+    vars = Object.assign({}, DEFAULTS);
+    write('sbcf.vars', vars);
+    Object.keys(DEFAULTS).forEach(function (key) { form.elements[key].value = vars[key]; });
+    applyVars();
+    loadChecks();
+  });
+
+  document.querySelectorAll('.phase input[type="checkbox"]').forEach(function (box) {
+    box.addEventListener('change', function () { saveChecks(); updateProgress(); });
+  });
+
+  document.getElementById('checks-reset').addEventListener('click', function () {
+    document.querySelectorAll('.phase input[type="checkbox"]').forEach(function (box) { box.checked = false; });
+    saveChecks();
+    updateProgress();
+  });
+
+  // Copy buttons on every command and template.
+  document.querySelectorAll('pre.code').forEach(function (pre) {
+    var wrap = pre.parentElement;
+    var label = wrap.querySelector('.code-label');
+    if (!label) {
+      label = document.createElement('div');
+      label.className = 'code-label';
+      label.appendChild(document.createElement('span'));
+      wrap.insertBefore(label, pre);
+    }
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'copy';
+    button.textContent = 'Chép';
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+      var text = pre.innerText.replace(/\s+$/, '');
+      var done = function () {
+        button.textContent = 'Đã chép';
+        setTimeout(function () { button.textContent = 'Chép'; }, 1500);
+      };
+      var fallback = function () {
+        var range = document.createRange();
+        range.selectNodeContents(pre);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        button.textContent = 'Đã chọn, nhấn ⌘C';
+      };
+      try {
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } catch (e) {
+        fallback();
+      }
+    });
+    label.appendChild(button);
+  });
+
+  applyVars();
+  loadChecks();
+})();
+</script>
+
+<!--claude-mermaid-runtime-begin:3477-->
+<style>.mermaid-diagram{margin-block:4px}.mermaid-diagram svg{display:block;margin:0 auto;max-width:100%;height:auto}</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>(function(){
+var CFG={"palettes":{"light":{"surface":"#f4efe4","text":"#42392e","line":"#8a7f6d","border":"#7a6c52","bg":"#fffdf8"},"dark":{"surface":"#262b34","text":"#f2f3f5","line":"#a8adb8","border":"#9aa4b8","bg":"#1f232b"}}};
+if(typeof mermaid==='undefined')return;
+var pres=Array.prototype.slice.call(document.querySelectorAll('pre.mermaid')).filter(function(p){if(p.hasAttribute('data-claude-mermaid-claimed'))return false;p.setAttribute('data-claude-mermaid-claimed','1');return true;});
+if(!pres.length)return;
+var mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+var root=document.documentElement;
+var items=pres.map(function(pre){
+var mount=document.createElement('div');mount.className='mermaid-diagram';
+return {pre:pre,mount:mount,src:pre.textContent||''};
+});
+var seq=0;
+var renderGen=0;
+var lastKey='';
+function pageBg(fallback){
+var els=[document.body,document.documentElement];
+for(var i=0;i<els.length;i++){
+var c=els[i]&&getComputedStyle(els[i]).backgroundColor;
+if(c&&c!=='transparent'&&c!=='rgba(0, 0, 0, 0)')return c;
+}
+return fallback;
+}
+function render(){
+var theme=root.getAttribute('data-theme');
+var dark=theme==='dark'||(!!(mq&&mq.matches)&&theme!=='light');
+var pal=dark?CFG.palettes.dark:CFG.palettes.light;
+var bg=pageBg(pal.bg);
+var key=(dark?'d':'l')+'|'+bg;
+if(key===lastKey)return;
+lastKey=key;
+var gen=++renderGen;
+var font=getComputedStyle(document.body).fontFamily||'sans-serif';
+var nat={useMaxWidth:false};
+mermaid.initialize({
+startOnLoad:false,securityLevel:'strict',theme:'base',
+flowchart:nat,sequence:nat,er:nat,state:nat,class:nat,pie:nat,
+gantt:nat,journey:nat,timeline:nat,gitGraph:nat,mindmap:nat,xyChart:nat,
+quadrantChart:nat,sankey:nat,c4:nat,requirement:nat,block:nat,
+packet:nat,kanban:nat,architecture:nat,radar:nat,
+themeVariables:{background:bg,mainBkg:pal.surface,primaryColor:pal.surface,
+primaryTextColor:pal.text,lineColor:pal.line,primaryBorderColor:pal.border,
+nodeBorder:pal.border,clusterBorder:pal.border,edgeLabelBackground:bg,
+clusterBkg:'rgba(127,127,127,0.07)',titleColor:pal.text,
+darkMode:dark,rowOdd:bg,rowEven:'rgba(127,127,127,0.07)',
+attributeBackgroundColorOdd:bg,attributeBackgroundColorEven:'rgba(127,127,127,0.07)',
+fontSize:'16px',fontFamily:font},
+themeCSS:'.node rect, .node circle, .node polygon, .node path, .cluster rect { stroke-width: 2px; }'
+});
+items.forEach(function(it){
+var id='claude-mermaid-'+seq++;
+mermaid.render(id,it.src).then(function(r){
+if(gen!==renderGen)return;
+var prev=it.pre.previousElementSibling;
+if(prev&&prev.className==='mermaid-diagram'&&prev!==it.mount)return;
+it.mount.innerHTML=r.svg;
+if(!it.mount.parentNode)it.pre.parentNode.insertBefore(it.mount,it.pre);
+it.pre.style.display='none';
+},function(){
+var scratch=document.getElementById(id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+scratch=document.getElementById('d'+id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+if(gen!==renderGen)return;
+if(it.mount.parentNode)it.mount.parentNode.removeChild(it.mount);
+it.pre.style.display='';
+});
+});
+}
+render();
+if(mq&&mq.addEventListener)mq.addEventListener('change',render);
+if(typeof MutationObserver!=='undefined')new MutationObserver(render).observe(root,{attributes:true,attributeFilter:['data-theme']});
+})();</script>
+<!--claude-mermaid-runtime-end-->
+
+</body></html>
