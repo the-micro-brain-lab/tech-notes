@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>How to write a paper - Dàn ý trước, câu chữ sau</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #EEF1F4;
+    --surface: #FFFFFF;
+    --ink: #1B2A4A;
+    --graphite: #5B6474;
+    --rule: #C9D1DC;
+    --marker: #F3DD6D;
+    --red: #B23A2E;
+    --blue: #2F5BA8;
+    --serif: "Literata", "Noto Serif", Georgia, "Times New Roman", serif;
+    --sans: "Be Vietnam Pro", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --paper: #131923;
+      --surface: #1B2330;
+      --ink: #E3E8F0;
+      --graphite: #9AA4B4;
+      --rule: #2D3847;
+      --marker: #5E5114;
+      --red: #E2735F;
+      --blue: #8EB1EE;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --paper: #131923;
+    --surface: #1B2330;
+    --ink: #E3E8F0;
+    --graphite: #9AA4B4;
+    --rule: #2D3847;
+    --marker: #5E5114;
+    --red: #E2735F;
+    --blue: #8EB1EE;
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 3.5rem 1.25rem 4rem;
+  }
+  h1, h2, h3 { font-family: var(--serif); line-height: 1.2; margin: 0; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--blue); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 3px; }
+
+  /* Hero */
+  .hero { padding-bottom: 2.5rem; border-bottom: 1px solid var(--rule); }
+  .hero h1 {
+    font-size: clamp(2.6rem, 9vw, 4.4rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  .hero h1 span { display: block; }
+  .hero h1 .later { font-weight: 400; color: var(--graphite); }
+  .hero .lede { font-size: 1.25rem; margin: 1.5rem 0 1rem; max-width: 34rem; }
+  .source { font-family: var(--sans); font-size: 0.875rem; color: var(--graphite); margin: 0; }
+
+  section { padding: 2.75rem 0 0.5rem; }
+  section > h2 { font-size: 1.65rem; font-weight: 600; margin-bottom: 1rem; }
+  .note { font-family: var(--sans); font-size: 0.9375rem; color: var(--graphite); }
+  mark { background: var(--marker); color: inherit; padding: 0 0.15em; border-radius: 2px; }
+
+  /* Two phases */
+  .phases { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; margin: 1.25rem 0 1rem; }
+  .phase { background: var(--surface); padding: 1.25rem 1.25rem 1rem; }
+  .phase h3 { font-size: 1.2rem; margin-bottom: 0.25rem; }
+  .phase .when { font-family: var(--sans); font-size: 0.8125rem; color: var(--graphite); margin-bottom: 0.75rem; }
+  .phase ul { margin: 0; padding-left: 1.1rem; }
+  .phase li { margin-bottom: 0.35rem; }
+  .phase .rule-line { font-family: var(--sans); font-size: 0.875rem; font-weight: 600; margin-top: 0.75rem; }
+  .phase.creative .rule-line { color: var(--blue); }
+  .phase.mechanical .rule-line { color: var(--graphite); }
+  @media (max-width: 560px) { .phases { grid-template-columns: 1fr; } }
+
+  .warning { border-left: 3px solid var(--red); padding: 0.25rem 0 0.25rem 1rem; margin: 1.25rem 0; }
+  .warning p:last-child { margin-bottom: 0; }
+
+  /* Reorder widget: the one memorable thing */
+  .order-wrap { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 1rem; margin: 1.25rem 0 0.75rem; }
+  .toggle { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 3px; margin-bottom: 1rem; font-family: var(--sans); }
+  .toggle button {
+    font: inherit; font-size: 0.9375rem; font-weight: 500;
+    border: 0; background: transparent; color: var(--graphite);
+    padding: 0.4rem 1rem; border-radius: 999px; cursor: pointer;
+  }
+  .toggle button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+  .order { position: relative; }
+  .row {
+    position: absolute; left: 0; right: 0; top: 0;
+    height: 48px; display: flex; align-items: center; gap: 0.9rem;
+    padding: 0 0.5rem; border-bottom: 1px solid var(--rule);
+    transition: transform 520ms cubic-bezier(.2,.7,.2,1);
+  }
+  .row .pos { font-family: var(--sans); font-size: 0.8125rem; color: var(--graphite); width: 1.25rem; text-align: right; flex: none; }
+  .row .name { font-weight: 600; flex: 1; }
+  .row .step { font-family: var(--sans); font-size: 0.8125rem; color: var(--graphite); }
+  .row.first .name { color: var(--blue); }
+  .row.last .name { color: var(--red); }
+  @media (prefers-reduced-motion: reduce) { .row { transition: none; } }
+
+  /* Steps */
+  ol.steps { list-style: none; counter-reset: step; padding: 0; margin: 1.5rem 0 0; }
+  ol.steps > li { counter-increment: step; position: relative; padding: 0 0 1.75rem 3rem; }
+  ol.steps > li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 0.1rem;
+    width: 2rem; height: 2rem; border-radius: 50%;
+    border: 1.5px solid var(--ink);
+    font-family: var(--sans); font-size: 0.9375rem; font-weight: 600;
+    display: grid; place-items: center;
+  }
+  ol.steps > li::after {
+    content: ""; position: absolute; left: calc(1rem - 0.75px); top: 2.3rem; bottom: 0.3rem;
+    width: 1.5px; background: var(--rule);
+  }
+  ol.steps > li:last-child::after { display: none; }
+  ol.steps h3 { font-size: 1.2rem; margin-bottom: 0.4rem; }
+  ol.steps ul { margin: 0.25rem 0 0.75rem; padding-left: 1.1rem; }
+
+  .titles { font-family: var(--sans); font-size: 0.9375rem; margin: 0.75rem 0; }
+  .titles div { padding: 0.35rem 0; }
+  .titles .bad { color: var(--graphite); text-decoration: line-through; text-decoration-color: var(--red); }
+  .titles .good { font-weight: 600; }
+  .titles small { font-weight: 400; color: var(--graphite); margin-left: 0.4rem; }
+
+  .formula { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 1rem 1.1rem; margin: 0.75rem 0; }
+  .formula p { margin: 0 0 0.5rem; }
+  .formula p:last-child { margin: 0; }
+  .formula .lbl { font-family: var(--sans); font-size: 0.8125rem; font-weight: 600; color: var(--graphite); display: block; }
+  .slot { background: var(--marker); padding: 0 0.3em; border-radius: 2px; font-style: italic; }
+
+  /* Shapes */
+  .shapes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.25rem; }
+  .shape { text-align: center; }
+  .shape svg { width: 100%; max-width: 140px; height: auto; color: var(--blue); }
+  .shape h3 { font-size: 1.05rem; margin-top: 0.5rem; }
+  .shape p { font-family: var(--sans); font-size: 0.875rem; color: var(--graphite); margin: 0.2rem 0 0; }
+  @media (max-width: 480px) { .shapes { grid-template-columns: 1fr; } .shape svg { max-width: 120px; } }
+
+  /* Habits */
+  .habit { padding: 1.25rem 0; border-top: 1px solid var(--rule); }
+  .habit:first-of-type { border-top: 0; padding-top: 0.25rem; }
+  .habit h3 { font-size: 1.2rem; margin-bottom: 0.5rem; }
+  .spiral { font-family: var(--sans); display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 0.9rem; margin: 0.75rem 0 1rem; }
+  .spiral .small { font-size: 1rem; color: var(--graphite); }
+  .spiral .big { font-size: 1.6rem; font-weight: 600; }
+  .spiral .sep { color: var(--rule); }
+
+  /* Summary */
+  .summary { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0 2rem; }
+  .summary li { padding: 0.75rem 0; border-bottom: 1px solid var(--rule); }
+  .summary strong { display: block; font-weight: 600; }
+  .summary span { font-family: var(--sans); font-size: 0.9375rem; color: var(--graphite); }
+  @media (max-width: 560px) { .summary { grid-template-columns: 1fr; } }
+
+  footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); }
+  footer p { font-style: italic; }
+</style>
+<link rel="stylesheet" href="../../assets/site.css">
+</head>
+<body>
+<nav class="site-nav" aria-label="Site">
+  <div class="inner">
+    <a class="brand" href="../../">Tech Notes</a>
+    <div class="links"><a href="../../">Home</a></div>
+  </div>
+</nav>
+<main>
+
+  <header class="hero">
+    <h1><span>Dàn ý trước.</span><span class="later">Câu chữ sau.</span></h1>
+    <p class="lede">Tách việc quyết định <em>nói gì</em> khỏi việc quyết định <em>nói thế nào</em>. Mọi thứ khác trong phương pháp này đều xuất phát từ nguyên tắc đó.</p>
+    <p class="source">Cô đặc từ slide “How I write papers” · <a href="https://thoughtforms.life/how-i-write-papers">thoughtforms.life</a></p>
+  </header>
+
+  <section aria-labelledby="h-phases">
+    <h2 id="h-phases">Hai pha, không bao giờ trộn lẫn</h2>
+    <p>Dựng outline theo chiều rộng: chốt xong một tầng (các ý chính, theo thứ tự) rồi mới đi xuống tầng dưới. Chỉ khi toàn bộ cấu trúc đã ổn mới viết câu.</p>
+
+    <div class="phases">
+      <div class="phase creative">
+        <h3>Pha sáng tạo</h3>
+        <div class="when">Quyết định nói gì</div>
+        <ul>
+          <li>Câu chuyện bạn sẽ kể</li>
+          <li>Cái gì đưa vào, cái gì để dành</li>
+          <li>Thứ tự các ý và quan hệ giữa chúng</li>
+          <li>Hành trình dẫn người đọc đi</li>
+        </ul>
+        <div class="rule-line">Chưa viết câu nào.</div>
+      </div>
+      <div class="phase mechanical">
+        <h3>Pha cơ học</h3>
+        <div class="when">Chỉ sau khi pha sáng tạo xong</div>
+        <ul>
+          <li>Mỗi ý ở tầng thấp nhất thành một đoạn văn</li>
+          <li>Câu chữ, số liệu, thống kê</li>
+          <li>Chú thích hình</li>
+          <li>Tin vào outline, sửa nó nếu cần</li>
+        </ul>
+        <div class="rule-line">Không còn quyết định lớn: chỉ việc quay tay quay.</div>
+      </div>
+    </div>
+
+    <div class="warning">
+      <p><strong>Vì sao bản nháp cứ trôi dạt?</strong> Khi vừa dựng cấu trúc vừa gọt câu chữ, đoạn viết chi tiết sớm sẽ dồn bạn vào góc, buộc phải tái cấu trúc lớn. Các mảnh bị dịch chuyển và viết lại mãi, việc viết trở nên đáng sợ và bị hoãn đến phút chót, mà kết quả vẫn có thể không mạch lạc.</p>
+    </div>
+    <p class="note">Mind-map là mạng nơi ý nào cũng nối với ý nào. Outline là một con đường có thứ tự xuyên qua mạng đó.</p>
+  </section>
+
+  <section aria-labelledby="h-order">
+    <h2 id="h-order">Viết theo thứ tự khác với thứ tự đọc</h2>
+    <p>Bài báo dữ liệu được đọc từ Abstract xuống, nhưng nên được viết từ câu chuyện và các hình ra ngoài. Introduction, phần người đọc gặp gần như đầu tiên, lại được viết cuối cùng.</p>
+
+    <div class="order-wrap">
+      <div class="toggle" role="group" aria-label="Chọn thứ tự">
+        <button type="button" id="btn-read" aria-pressed="true">Thứ tự đọc</button>
+        <button type="button" id="btn-write" aria-pressed="false">Thứ tự viết</button>
+      </div>
+      <div class="order" id="order" aria-live="polite"></div>
+    </div>
+    <p class="note">Methods và Acknowledgments được viết cùng một bước.</p>
+  </section>
+
+  <section aria-labelledby="h-steps">
+    <h2 id="h-steps">Sáu bước cho một bài báo dữ liệu</h2>
+    <ol class="steps">
+      <li>
+        <h3>Câu chuyện, outline, rồi Abstract</h3>
+        <p>Chốt câu chuyện, cách kể và phạm vi trước. Sau đó viết Abstract khoảng 250 từ, trả lời ba câu: vấn đề là gì, tiếp cận thế nào, tìm thấy gì.</p>
+      </li>
+      <li>
+        <h3>Tiêu đề hình là bộ xương của bài</h3>
+        <p>Mỗi hình là một kết quả chính và chỉ chứa đúng phần đồ họa cần để thuyết phục người đọc tin vào tiêu đề của nó. Tiêu đề phải là một <mark>mệnh đề khẳng định có động từ</mark>.</p>
+        <div class="titles">
+          <div class="bad">Mức gen X sau xử lý A</div>
+          <div class="good">Xử lý A làm im lặng gen X <small>(một khẳng định)</small></div>
+        </div>
+        <p>Đọc lần lượt các tiêu đề hình là thấy được cả câu chuyện. Hãy đưa danh sách tiêu đề cho PI hoặc cộng sự duyệt trước khi điền nội dung.</p>
+      </li>
+      <li>
+        <h3>Mỗi tiểu mục Results theo cùng một công thức</h3>
+        <div class="formula">
+          <p><span class="lbl">Câu hỏi và cách tiếp cận</span>Để xác định <span class="slot">X</span>, chúng tôi dùng cách tiếp cận <span class="slot">Y</span>.</p>
+          <p><span class="lbl">Bằng chứng</span>Các thí nghiệm <span class="slot">Z</span> cho thấy <span class="slot">Q</span> (Hình N; thống kê).</p>
+          <p><span class="lbl">Kết luận</span>Vì vậy, chúng tôi kết luận <span class="slot">W</span>.</p>
+        </div>
+        <p>Tiêu đề tiểu mục trùng với tiêu đề hình, ở cùng tầng outline. Công thức được thiết kế để điền vào mà không bị kẹt.</p>
+      </li>
+      <li>
+        <h3>Methods và Acknowledgments</h3>
+        <p>Methods liệt kê mọi kỹ thuật, đủ chi tiết để một lab khác lặp lại và ra cùng kết quả. Nêu rõ những chỗ khó, dễ làm người khác vấp. Acknowledgments ghi nhận mọi người đã giúp và mọi nguồn tài trợ.</p>
+      </li>
+      <li>
+        <h3>Discussion mở rộng dần ra</h3>
+        <p>Tóm lại kết quả chính (kèm một hình hoặc mô hình tổng hợp), chỉ ra điều thú vị hoặc khó hiểu, diễn giải ý nghĩa, đặt vào bối cảnh nghiên cứu trước (khớp, mâu thuẫn, mở rộng hay lật đổ), nêu hạn chế, hướng tiếp theo, và kết bằng một nốt tích cực khiến người khác hứng thú với lĩnh vực.</p>
+      </li>
+      <li>
+        <h3>Introduction viết cuối cùng</h3>
+        <p>Phần khó nhất. Mạch đi: lĩnh vực → điều đã biết → điều chưa biết → bạn giải quyết khoảng trống nào và bằng cách nào → “Here, we…” hé lộ phát hiện chính. Nhiệm vụ của nó là khiến người đọc phải đọc tiếp. Trích dẫn rộng rãi.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="h-shapes">
+    <h2 id="h-shapes">Ba hình dạng cần nhớ</h2>
+    <div class="shapes">
+      <div class="shape">
+        <svg viewBox="0 0 120 90" aria-hidden="true"><path d="M8 8 H112 L74 82 H46 Z" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        <h3>Introduction</h3>
+        <p>Rộng → hẹp: từ lĩnh vực đến câu hỏi của bạn</p>
+      </div>
+      <div class="shape">
+        <svg viewBox="0 0 120 90" aria-hidden="true"><path d="M46 8 H74 L112 82 H8 Z" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        <h3>Discussion</h3>
+        <p>Hẹp → rộng: từ kết quả trở về lĩnh vực</p>
+      </div>
+      <div class="shape">
+        <svg viewBox="0 0 120 90" aria-hidden="true"><path d="M8 6 H112 L68 45 L112 84 H8 L52 45 Z" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        <h3>Abstract</h3>
+        <p>Rộng → hẹp → rộng, gói trong khoảng 250 từ</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-habits">
+    <h2 id="h-habits">Ba thói quen</h2>
+
+    <div class="habit">
+      <h3>Trích dẫn hào phóng</h3>
+      <p>Trích mọi công trình liên quan để người đọc lần ngược được về tận những người khổng lồ đi trước. Nếu tạp chí giới hạn số trích dẫn, bản preprint vẫn giữ đủ. Dùng trình quản lý tài liệu, và nhờ người am hiểu lĩnh vực (hoặc AI) kiểm tra xem có sót ai quan trọng không.</p>
+    </div>
+
+    <div class="habit">
+      <h3>Viết hết trước, cắt mạnh tay sau</h3>
+      <p>Khi nháp, đừng nghĩ đến số chữ, vì nghĩ đến việc cắt sẽ kìm hãm sáng tạo. Khi sửa, hỏi từng đoạn: nó có phục vụ sứ mệnh dẫn người đọc đến đích không, nó làm việc gì cho chủ đề chính, nó tác động gì lên người đọc? Rồi <mark>cắt không thương tiếc</mark>.</p>
+    </div>
+
+    <div class="habit">
+      <h3>Ý tưởng đan xen thì viết theo xoắn ốc</h3>
+      <p>Khi A, B, C, D phần nào cũng cần các phần kia mới hiểu được: giới thiệu ngắn gọn tất cả trước, rồi mới đi sâu từng phần. Người đọc đến A khi đã gặp b, c, d.</p>
+      <div class="spiral" aria-label="Thứ tự đọc: a b c d, rồi A B C D">
+        <span class="small">a</span><span class="small">b</span><span class="small">c</span><span class="small">d</span>
+        <span class="sep">|</span>
+        <span class="big">A</span><span class="big">B</span><span class="big">C</span><span class="big">D</span>
+      </div>
+      <p class="note">Có thể dùng nhiều vòng lớn dần: mỗi vòng cung cấp vừa đủ để đi tiếp.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-summary">
+    <h2 id="h-summary">Cả phương pháp trên một trang</h2>
+    <ul class="summary">
+      <li><strong>Outline từ trên xuống</strong><span>Xong một tầng mới đi sâu hơn</span></li>
+      <li><strong>Quyết định, rồi mới viết</strong><span>Tách việc sáng tạo khỏi việc cơ học</span></li>
+      <li><strong>Tiêu đề hình trước</strong><span>Khẳng định có động từ, duyệt với PI</span></li>
+      <li><strong>Một công thức cho Results</strong><span>Câu hỏi → bằng chứng → kết luận</span></li>
+      <li><strong>Introduction sau cùng</strong><span>Từ lĩnh vực xuống “Here, we…”</span></li>
+      <li><strong>Trích dẫn hào phóng</strong><span>Để người đọc lần ngược mọi ý tưởng</span></li>
+      <li><strong>Viết dài, cắt sau</strong><span>Hỏi mỗi đoạn đang làm việc gì</span></li>
+      <li><strong>Xoắn ốc cho ý rối</strong><span>a, b, c, d rồi A, B, C, D</span></li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>Không điều nào ở đây là luật cứng. Nếu bạn đã có quy trình hiệu quả, cứ dùng nó: có nhiều cách để viết nên những bài báo đẹp.</p>
+    <p class="source">Bài viết đầy đủ: <a href="https://thoughtforms.life/how-i-write-papers">thoughtforms.life/how-i-write-papers</a></p>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  var ROW = 48;
+  var items = [
+    { name: "Abstract",        read: 0, write: 0, step: "viết ở bước 1" },
+    { name: "Introduction",    read: 1, write: 6, step: "viết ở bước 6" },
+    { name: "Results",         read: 2, write: 2, step: "viết ở bước 3" },
+    { name: "Figures",         read: 3, write: 1, step: "viết ở bước 2" },
+    { name: "Discussion",      read: 4, write: 5, step: "viết ở bước 5" },
+    { name: "Methods",         read: 5, write: 3, step: "viết ở bước 4" },
+    { name: "Acknowledgments", read: 6, write: 4, step: "viết ở bước 4" }
+  ];
+  var box = document.getElementById("order");
+  var btnRead = document.getElementById("btn-read");
+  var btnWrite = document.getElementById("btn-write");
+  box.style.height = (items.length * ROW) + "px";
+
+  var rows = items.map(function (it) {
+    var el = document.createElement("div");
+    el.className = "row";
+    el.innerHTML = '<span class="pos"></span><span class="name"></span><span class="step"></span>';
+    el.querySelector(".name").textContent = it.name;
+    el.querySelector(".step").textContent = it.step;
+    box.appendChild(el);
+    return el;
+  });
+
+  function render(mode) {
+    items.forEach(function (it, i) {
+      var idx = it[mode];
+      var el = rows[i];
+      el.style.transform = "translateY(" + (idx * ROW) + "px)";
+      el.querySelector(".pos").textContent = idx + 1;
+      el.classList.toggle("first", mode === "write" && it.name === "Abstract");
+      el.classList.toggle("last", mode === "write" && it.name === "Introduction");
+    });
+    btnRead.setAttribute("aria-pressed", mode === "read");
+    btnWrite.setAttribute("aria-pressed", mode === "write");
+  }
+
+  btnRead.addEventListener("click", function () { render("read"); });
+  btnWrite.addEventListener("click", function () { render("write"); });
+  render("read");
+})();
+</script>
+</body>
+</html>

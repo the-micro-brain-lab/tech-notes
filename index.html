@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tech Notes</title>
+  <meta name="description" content="Tech notes from The Micro Brain Lab">
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    :root {
+      --bg: #fafaf9; --fg: #1c1917; --muted: #78716c; --line: #e7e5e4; --accent: #2563eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0c0a09; --fg: #e7e5e4; --muted: #a8a29e; --line: #292524; --accent: #60a5fa; }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--fg);
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    main { max-width: 720px; margin: 0 auto; padding: 48px 16px; }
+    h1 { margin: 0 0 4px; font-size: 28px; }
+    .sub { color: var(--muted); margin: 0 0 32px; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { display: grid; grid-template-columns: 110px 1fr; gap: 16px; padding: 16px 0; border-top: 1px solid var(--line); }
+    li:last-child { border-bottom: 1px solid var(--line); }
+    time { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; padding-top: 2px; }
+    a { color: var(--fg); text-decoration: none; font-weight: 600; font-size: 17px; }
+    a:hover { color: var(--accent); }
+    .desc { color: var(--muted); margin: 2px 0 0; font-size: 15px; }
+    @media (max-width: 520px) {
+      li { grid-template-columns: 1fr; gap: 2px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav" aria-label="Site">
+    <div class="inner">
+      <a class="brand" href="./">Tech Notes</a>
+      <div class="links"><a href="./" aria-current="page">Home</a></div>
+    </div>
+  </nav>
+  <main>
+    <h1>Tech Notes</h1>
+    <p class="sub">The Micro Brain Lab — những ghi chú kỹ thuật thấy hay.</p>
+    <!-- Mới nhất ở trên. Thêm note: một <li> với <time>, link tới notes/<slug>/ và mô tả ngắn. -->
+    <ul>
+      <li>
+        <time datetime="2026-11-02">2026-11-02</time>
+        <div>
+          <a href="notes/how-to-write-a-paper/">How to write a paper — Dàn ý trước, câu chữ sau</a>
+          <p class="desc">Tách việc quyết định nói gì khỏi việc quyết định nói thế nào: hai pha viết, thứ tự viết một bài báo dữ liệu, và ba thói quen.</p>
+        </div>
+      </li>
+    </ul>
+  </main>
+</body>
+</html>

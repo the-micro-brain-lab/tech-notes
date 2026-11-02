@@ -1,0 +1,70 @@
+/* Shared top bar, included by the home page and every note.
+   Uses its own --nav-* tokens so it never clashes with a note's styles. */
+:root {
+  --nav-bg: rgba(250, 250, 249, 0.85);
+  --nav-fg: #1c1917;
+  --nav-muted: #78716c;
+  --nav-line: #e7e5e4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --nav-bg: rgba(12, 10, 9, 0.85);
+    --nav-fg: #e7e5e4;
+    --nav-muted: #a8a29e;
+    --nav-line: #292524;
+  }
+}
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--nav-bg);
+  -webkit-backdrop-filter: saturate(1.5) blur(10px);
+  backdrop-filter: saturate(1.5) blur(10px);
+  border-bottom: 1px solid var(--nav-line);
+  font: 500 15px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.site-nav .inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 16px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.site-nav a {
+  color: var(--nav-fg);
+  text-decoration: none;
+}
+.site-nav .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.site-nav .brand::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+.site-nav .links a {
+  color: var(--nav-muted);
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+.site-nav .links a:hover,
+.site-nav .links a[aria-current="page"] {
+  color: var(--nav-fg);
+  background: var(--nav-line);
+}
+.site-nav a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
