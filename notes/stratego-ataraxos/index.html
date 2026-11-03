@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stratego, ván cờ úp mặt — và cách Ataraxos chinh phục nó</title>
+<style>
+:root{
+  --paper:var(--note-bg);--card:var(--note-surface);--ink:var(--note-ink);--ink-2:var(--note-muted);--rule:var(--note-line);
+  --red:#A8281F;--red-tint:#F1D8D4;--on-red:#FFFFFF;
+  --blue:#1E4C86;--blue-tint:#D5E0EF;--on-blue:#FFFFFF;
+  --lake:#BCD5DD;--lake-ink:#4F7480;--brass:#B8860B;
+  --display:var(--note-font-heading);
+  --sans:var(--note-font-body);
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:var(--note-bg);--card:var(--note-surface);--ink:var(--note-ink);--ink-2:var(--note-muted);--rule:var(--note-line);
+    --red:#E26C61;--red-tint:#3D2321;--on-red:#121316;
+    --blue:#7DA7E8;--blue-tint:#1C2A3F;--on-blue:#121316;
+    --lake:#22404A;--lake-ink:#7FA6B3;--brass:#DDB44C;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:var(--note-bg);--card:var(--note-surface);--ink:var(--note-ink);--ink-2:var(--note-muted);--rule:var(--note-line);
+  --red:#E26C61;--red-tint:#3D2321;--on-red:#121316;
+  --blue:#7DA7E8;--blue-tint:#1C2A3F;--on-blue:#121316;
+  --lake:#22404A;--lake-ink:#7FA6B3;--brass:#DDB44C;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.72;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+a{color:var(--blue);text-underline-offset:2px}
+a:focus-visible,button:focus-visible,input:focus-visible,.replay:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.wrap{max-width:82rem;margin:0 auto;padding:0 1.25rem}
+.shell{display:grid;grid-template-columns:minmax(0,1fr)}
+.body{min-width:0}
+.col{max-width:44rem;margin:0 auto}
+.wide{max-width:64rem;margin:0 auto}
+@media (min-width:1100px){.shell{grid-template-columns:13rem minmax(0,1fr);gap:3rem}.col,.wide{margin:0}}
+h1,h2,h3,h4{font-family:var(--display);font-weight:600;line-height:1.1;letter-spacing:-0.01em;margin:0}
+h1{font-size:clamp(2.5rem,6.4vw,4.2rem);line-height:1.02;letter-spacing:-0.025em;margin-top:2.5rem}
+h2{font-size:clamp(1.65rem,3.2vw,2.15rem);margin:4.5rem 0 1.25rem}
+h3{font-size:1.3rem;margin:2.5rem 0 0.6rem}
+p{margin:0 0 1.1rem}
+.lead{font-size:1.25rem;line-height:1.6;color:var(--ink-2);max-width:36rem;margin-top:1.25rem}
+sup a{text-decoration:none;font-size:0.72em;padding:0 1px}
+ul.rules{padding-left:1.2rem;margin:0 0 1.2rem}
+ul.rules li{margin-bottom:0.4rem}
+.note{color:var(--ink-2);font-size:0.95rem;border-left:3px solid var(--rule);padding-left:1rem;margin:1.2rem 0}
+table{border-collapse:collapse;width:100%;font-size:0.95rem;line-height:1.5}
+.tblwrap{overflow-x:auto;margin:1rem 0 1.5rem}
+th,td{text-align:left;padding:0.55rem 0.7rem;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--sans);font-weight:600;font-size:1.05rem}
+.chip{display:inline-flex;align-items:center;justify-content:center;width:1.9rem;height:2.2rem;border-radius:3px;background:var(--red);color:var(--on-red);font-family:var(--sans);font-weight:700;font-size:1.05rem}
+.chip svg{width:15px;height:15px}
+/* hero tiles */
+.strip{display:flex;gap:6px;flex-wrap:wrap;margin:2rem 0 0.6rem}
+.tile{width:46px;height:58px;padding:0;border:0;background:none;cursor:pointer;perspective:500px;border-radius:4px}
+.tile-in{position:relative;display:block;width:100%;height:100%;transition:transform .5s cubic-bezier(.3,.7,.2,1);transform-style:preserve-3d}
+.tile.flipped .tile-in{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:4px;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;align-items:center;justify-content:center}
+.back{background:var(--blue)}
+.back::after{content:"";width:14px;height:14px;border:1.5px solid var(--on-blue);transform:rotate(45deg);opacity:.55}
+.front{background:var(--blue-tint);color:var(--blue);transform:rotateY(180deg);font-family:var(--sans);font-weight:700;font-size:1.6rem}
+@media (prefers-reduced-motion:reduce){.tile-in{transition:none}}
+.caption{font-size:0.92rem;color:var(--ink-2);margin:0}
+/* replay */
+.replay{display:flex;flex-wrap:wrap;gap:1.5rem 2rem;margin:1.75rem 0 1rem;padding:1.25rem;background:var(--card);border:1px solid var(--rule);border-radius:6px}
+.rp-left{flex:0 1 440px;min-width:0}
+.rp-board{display:grid;gap:2px;width:100%}
+.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:3px;font-family:var(--sans);font-weight:700;font-size:clamp(0.8rem,2.6vw,1.1rem);background:color-mix(in srgb,var(--paper) 70%,var(--card));color:var(--ink-2);min-width:0}
+.cell svg{width:52%;height:52%}
+.cell.lbl{background:none;font-weight:600;font-size:0.8rem;color:var(--ink-2)}
+.cell.lake{background:var(--lake);color:var(--lake-ink)}
+.cell.rh{background:var(--red-tint);color:var(--red)}
+.cell.rv{background:var(--red);color:var(--on-red)}
+.cell.bh{background:var(--blue-tint);color:var(--blue)}
+.cell.bv{background:var(--blue);color:var(--on-blue)}
+.cell.to{outline:2.5px solid var(--brass);outline-offset:-2.5px}
+.cell.fr{outline:2px dashed var(--brass);outline-offset:-2px}
+.rp-ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:0.9rem}
+.rp-ctl button,.rp-view button{font-family:var(--sans);font-weight:600;font-size:1rem;padding:0.35rem 0.75rem;border-radius:4px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer}
+.rp-ctl button:hover,.rp-view button:hover{border-color:var(--ink-2)}
+.rp-view button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.rp-count{font-family:var(--sans);font-weight:600;color:var(--ink-2);margin-left:auto}
+.rp-range{width:100%;margin:0.8rem 0 0;accent-color:var(--brass)}
+.rp-view{display:flex;gap:6px;align-items:center;margin-top:0.7rem;font-size:0.9rem;color:var(--ink-2)}
+.rp-notes{flex:1 1 260px;min-width:0}
+.rp-mv{font-family:var(--sans);font-weight:600;font-size:1.05rem;color:var(--ink-2);margin:0 0 0.2rem}
+.rp-tt{font-size:1.35rem;margin:0 0 0.6rem}
+.rp-tx{font-size:1rem;line-height:1.7;min-height:9.5rem}
+.rp-rs{font-size:0.95rem;color:var(--brass);font-weight:600;min-height:1.5rem}
+.rp-ls{font-size:0.85rem;color:var(--ink-2);margin:0}
+.legend{font-size:0.85rem;color:var(--ink-2);margin:0.4rem 0 0}
+/* pipeline */
+.pipe{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:1rem;margin:1.25rem 0 1.5rem;counter-reset:p}
+.pipe div{border-top:4px solid var(--blue);padding:0.8rem 0 0;counter-increment:p}
+.pipe div::before{content:counter(p);font-family:var(--sans);font-weight:700;font-size:1.6rem;color:var(--blue);display:block;line-height:1}
+.pipe b{font-family:var(--display);font-weight:600;font-size:1.25rem;display:block;margin:0.3rem 0 0.2rem}
+.pipe span{font-size:0.95rem;color:var(--ink-2);line-height:1.55;display:block}
+ol.refs{padding-left:1.6rem;font-size:0.95rem;line-height:1.6}
+ol.refs li{margin-bottom:0.7rem;word-break:break-word}
+footer{margin:4rem 0 3rem;padding-top:1rem;border-top:1px solid var(--rule);font-size:0.88rem;color:var(--ink-2)}
+@media (max-width:560px){body{font-size:17px}.replay{padding:0.9rem}.tile{width:40px;height:52px}}
+</style>
+<link rel="stylesheet" href="../../assets/site.css?v=2">
+<script src="../../assets/toc.js?v=2" defer></script>
+</head>
+<body>
+<nav class="site-nav" aria-label="Site">
+  <div class="inner">
+    <a class="brand" href="../../">The Micro Brain Lab</a>
+    <div class="links"><a href="../../">Home</a></div>
+  </div>
+</nav>
+<div class="wrap">
+<div class="shell">
+<nav class="note-toc" aria-label="Mục lục">
+  <p>Mục lục</p>
+  <ol>
+    <li><a href="#gioi-thieu">Giới thiệu</a></li>
+    <li><a href="#luat">Luật chơi</a></li>
+    <li><a href="#vi-du">Ví dụ luật</a></li>
+    <li><a href="#van-minh-hoa">Ván minh họa</a></li>
+    <li><a href="#ataraxos">Ataraxos</a></li>
+    <li><a href="#tham-khao">Tài liệu tham khảo</a></li>
+  </ol>
+</nav>
+<div class="body">
+
+<header class="col">
+  <h1>Stratego, ván cờ úp mặt</h1>
+  <p class="lead">Cờ vua có Deep Blue năm 1997, cờ vây có AlphaGo năm 2016. Stratego thì phải chờ đến Ataraxos. Trang này giải thích luật chơi, cho bạn xem hai ván minh họa từng nước, rồi đi vào cách một AI huấn luyện dưới 8.000 USD thắng kỳ thủ vĩ đại nhất của trò này.</p>
+  <div class="strip" id="strip" aria-label="Hàng quân úp mặt của đối thủ"></div>
+  <p class="caption">Đây là hàng quân đầu của đối thủ. Bấm một quân để lật. Trong ván thật, cách duy nhất để biết là đem quân của mình ra đánh.</p>
+</header>
+
+<main>
+<section class="col" id="gioi-thieu">
+  <h2>Stratego là gì</h2>
+  <p>Stratego là trò chơi chiến thuật cho hai người, ra đời ở Hà Lan khoảng thập niên 1940, dựa trên một trò Pháp đầu thế kỷ 20 tên L’Attaque. Mỗi bên chỉ huy 40 quân mang cấp bậc quân đội, từ Thống chế đến Trinh sát, cùng sáu quả bom và một lá cờ. Mục tiêu rất đơn giản: bắt được cờ của đối phương.</p>
+  <p>Điểm khác biệt là mọi quân đều đứng úp mặt. Bạn thấy đối thủ có quân ở ô nào, nhưng không biết đó là quân gì cho đến khi hai bên đụng độ. Vì vậy Stratego giống một hỗn hợp giữa cờ vua và poker: vừa có thế trận, vừa có bluff, đoán ý và quản lý thông tin.</p>
+  <p>Độ phức tạp cũng ở một tầm khác. Nhóm DeepMind ước tính cây trò chơi của Stratego vào cỡ 10<sup>535</sup> nút, lớn hơn cờ vây khoảng 10<sup>175</sup> lần<sup><a href="#r9">9</a></sup>, và riêng số cách xếp quân ban đầu đã vượt 10<sup>33</sup><sup><a href="#r5">5</a></sup>.</p>
+</section>
+
+<section class="col" id="luat">
+  <h2>Luật chơi</h2>
+
+  <h3>Bàn cờ</h3>
+  <p>Bàn có 10×10 ô. Giữa bàn có hai “hồ nước” 2×2 không đi qua được, nên hai bên chỉ có ba lối tiếp cận nhau: cột A–B, cột E–F và cột I–J. Trước ván, mỗi bên tự xếp 40 quân vào bốn hàng gần mình nhất, mặt có cấp bậc quay về phía mình.</p>
+
+  <h3>Quân cờ</h3>
+  <div class="tblwrap"><table>
+    <thead><tr><th></th><th>Quân</th><th>Số lượng</th><th>Ghi chú</th></tr></thead>
+    <tbody>
+      <tr><td><span class="chip">10</span></td><td>Thống chế</td><td>1</td><td>Mạnh nhất, chỉ sợ bom và Gián điệp</td></tr>
+      <tr><td><span class="chip">9</span></td><td>Đại tướng</td><td>1</td><td></td></tr>
+      <tr><td><span class="chip">8</span></td><td>Đại tá</td><td>2</td><td></td></tr>
+      <tr><td><span class="chip">7</span></td><td>Thiếu tá</td><td>3</td><td></td></tr>
+      <tr><td><span class="chip">6</span></td><td>Đại úy</td><td>4</td><td></td></tr>
+      <tr><td><span class="chip">5</span></td><td>Trung úy</td><td>4</td><td></td></tr>
+      <tr><td><span class="chip">4</span></td><td>Trung sĩ</td><td>4</td><td></td></tr>
+      <tr><td><span class="chip">3</span></td><td>Công binh</td><td>5</td><td>Quân duy nhất gỡ được bom</td></tr>
+      <tr><td><span class="chip">2</span></td><td>Trinh sát</td><td>8</td><td>Đi bao nhiêu ô cũng được theo đường thẳng</td></tr>
+      <tr><td><span class="chip">S</span></td><td>Gián điệp</td><td>1</td><td>Yếu nhất, nhưng hạ được Thống chế nếu chủ động tấn công</td></tr>
+      <tr><td><span class="chip" data-icon="B"></span></td><td>Bom</td><td>6</td><td>Không di chuyển; quân nào đụng vào cũng chết, trừ Công binh</td></tr>
+      <tr><td><span class="chip" data-icon="F"></span></td><td>Cờ</td><td>1</td><td>Không di chuyển; bị bắt là thua</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Các bộ cờ cũ ở Mỹ đánh số ngược, 1 là mạnh nhất. Trang này dùng cách đánh số châu Âu: số càng lớn càng mạnh.</p>
+
+  <h3>Di chuyển</h3>
+  <ul class="rules">
+    <li>Mỗi lượt bắt buộc đi đúng một quân.</li>
+    <li>Quân đi một ô theo hàng ngang hoặc dọc. Không đi chéo, không nhảy qua quân khác hay hồ nước.</li>
+    <li>Trinh sát đi bao nhiêu ô cũng được theo một đường thẳng, miễn đường đi trống.</li>
+    <li>Bom và Cờ đứng yên suốt ván.</li>
+    <li>Không được đi qua đi lại giữa hai ô quá nhiều lần liên tiếp, để ván cờ không kéo dài vô tận.</li>
+  </ul>
+
+  <h3>Đánh nhau</h3>
+  <ul class="rules">
+    <li>Đi vào ô có quân địch là tấn công. Cả hai quân lật lên cho nhau xem.</li>
+    <li>Cấp cao hơn thắng, quân thua rời bàn. Hai quân bằng cấp thì cùng rời bàn.</li>
+    <li>Gián điệp thắng Thống chế, nhưng chỉ khi Gián điệp là bên tấn công.</li>
+    <li>Quân nào đánh vào bom cũng chết, trừ Công binh. Công binh gỡ được bom.</li>
+    <li>Quân đã lộ vẫn ở trên bàn, nhưng đối thủ đã biết nó là gì.</li>
+  </ul>
+
+  <h3>Thắng thua</h3>
+  <p>Bên nào bắt được Cờ của đối phương, hoặc làm đối phương không còn nước đi hợp lệ, thì thắng.</p>
+
+  <h3>Cái hay nằm ở đâu</h3>
+  <p>Ván cờ có hai giai đoạn, và cả hai đều là cuộc chơi về thông tin. Khi xếp quân, đặt Cờ ở góc sau và bọc bom xung quanh thì an toàn, nhưng quá dễ đoán; kỳ thủ mạnh luôn trộn vào một chút ngẫu nhiên, thậm chí dựng pháo đài bom giả. Khi chơi, mỗi lần va chạm là một lần lộ bài. Người giỏi biết cho quân yếu đi hùng hổ như quân mạnh, biết đọc một quân đứng im suốt ván có thể là bom, và chịu hy sinh một Trinh sát chỉ để “soi” xem quân địch là gì.</p>
+</section>
+
+<section class="col" id="vi-du">
+  <h2>Ví dụ đơn giản: học luật trong 15 nước</h2>
+  <p>Bàn 6×6 dưới đây không phải Stratego thật, chỉ là sân tập. Mỗi nước minh họa một luật. Bấm “Sau”, kéo thanh trượt, hoặc chọn vào khung rồi dùng phím mũi tên trái phải.</p>
+</section>
+<div class="wide"><div class="replay" id="rp-mini" tabindex="0" aria-label="Bàn tập luật 6 nhân 6"></div></div>
+
+<section class="col" id="van-minh-hoa">
+  <h2>Một ván kinh điển, có bình luận</h2>
+  <p>Đây là ván minh họa rút gọn 47 nước, được dựng để gom đủ các khoảnh khắc kinh điển của Stratego: trinh sát đi soi, bluff, dùng quân đã lộ làm mồi, bẫy Gián điệp và pháo đài bom giả. Nó không phải ván thật của Ataraxos. Các ván thật thường dài hàng trăm nước và có trong kho lưu trữ chính thức<sup><a href="#r3">3</a></sup>.</p>
+  <p>Mặc định bạn xem từ góc nhìn của Đỏ, nên quân Xanh chỉ hiện cấp bậc khi đã đụng độ. Hãy xem một lượt như vậy và thử tự đoán, rồi bật “Hiện tất cả” để xem lại những gì Đỏ không biết.</p>
+</section>
+<div class="wide"><div class="replay" id="rp-classic" tabindex="0" aria-label="Ván minh họa 47 nước có bình luận"></div></div>
+<section class="col">
+  <p>Ba khoảnh khắc đáng dừng lại lâu nhất: nước 6, khi bluff khiến một quân mạnh hơn phải rút; nước 19 đến 25, khi Đỏ dùng một Công binh đã lộ làm mồi để Gián điệp hạ Thống chế; và nước 37, khi Đỏ né Gián điệp chỉ bằng suy luận, không cần nhìn thấy quân.</p>
+</section>
+
+<section class="col" id="ataraxos">
+  <h2>Ataraxos: AI đầu tiên vượt người ở Stratego</h2>
+  <p>Ngày 30/9/2026, một nhóm nghiên cứu từ Carnegie Mellon, MIT, NYU và Stanford, với Samuel Sokota là tác giả đầu, công bố Ataraxos trên tạp chí Nature<sup><a href="#r1">1</a></sup><sup><a href="#r6">6</a></sup>. Trong loạt 20 ván chính thức với Pim Niemeijer, Ataraxos thắng 15, thua 1, hòa 4<sup><a href="#r5">5</a></sup>. Niemeijer có bốn chức vô địch thế giới, 15 chức vô địch Hà Lan và đứng số một thế giới hơn 600 tuần<sup><a href="#r5">5</a></sup>.</p>
+  <p>Loạt ván diễn ra online vào tháng 7/2025<sup><a href="#r12">12</a></sup>, rải đều trong ba tuần để Niemeijer đỡ mệt và có thời gian chuẩn bị<sup><a href="#r11">11</a></sup>. Ngoài ra, tại giải vô địch thế giới Stratego, Ataraxos có thành tích 39 thắng, 2 thua trước các kỳ thủ hàng đầu<sup><a href="#r13">13</a></sup>.</p>
+
+  <div class="tblwrap"><table>
+    <thead><tr><th></th><th>DeepNash (DeepMind, 2022)</th><th>Ataraxos (2026)</th></tr></thead>
+    <tbody>
+      <tr><td>Phần cứng huấn luyện</td><td>1.024 TPU, 2–3 tháng</td><td>16 GPU H100 trong một tuần, cộng 4 GPU trong bốn ngày cho belief network</td></tr>
+      <tr><td>Chi phí ước tính</td><td>3–4,5 triệu USD</td><td>Dưới 8.000 USD</td></tr>
+      <tr><td>So với người giỏi nhất</td><td>Thắng 19/28 ván ở giải thế giới 2023 nhưng thua phần lớn kỳ thủ hàng đầu, kể cả Niemeijer</td><td>15 thắng, 1 thua, 4 hòa trước Niemeijer</td></tr>
+      <tr><td>Dữ liệu người</td><td>Không</td><td>Không, chỉ tự chơi</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Số liệu chi phí theo ước tính của nhóm Ataraxos, quy về giá năm 2025<sup><a href="#r5">5</a></sup>. Tổng cộng Ataraxos dùng khoảng 1/500 lượng tính toán, 1/30 số ván tự chơi và 1/100 số mẫu huấn luyện so với DeepNash<sup><a href="#r10">10</a></sup>.</p>
+
+  <h3>Vì sao Stratego làm khó AI đến vậy</h3>
+  <p><b>Không có “thế cờ hiện tại” để tính.</b> AlphaZero nhìn bàn cờ vua, tính các nhánh tương lai rồi chọn nước tốt nhất; cùng một thế cờ thì nước tốt nhất luôn như nhau. Trong Stratego, Sokota nhấn mạnh rằng giá trị của một quyết định còn phụ thuộc vào chiến lược các bên đã dùng trước đó, và cả những gì họ lẽ ra sẽ làm<sup><a href="#r10">10</a></sup>. Một quân cứ xông lên khiến đối thủ tin nó mạnh; có nên bluff tiếp hay không lại tùy vào việc bình thường bạn làm gì với quân mạnh thật và quân yếu thật. Thứ cần tính không phải một thế cờ, mà là cả một tập các thế cờ khả dĩ kèm xác suất.</p>
+  <p><b>Kỹ thuật poker không mở rộng được.</b> Các AI poker theo dõi niềm tin trên mọi tay bài có thể có của đối thủ. Texas Hold’em chỉ có 1.326 tay bài khởi đầu, còn chi phí của các phương pháp ấy tăng theo lượng thông tin ẩn<sup><a href="#r5">5</a></sup>. Với hơn 10<sup>33</sup> cách xếp quân, liệt kê hết là không thể.</p>
+  <p><b>Tự chơi dễ chạy vòng tròn.</b> Trong trò chơi thông tin ẩn, chiến lược tốt thường phải ngẫu nhiên có tính toán. Khi AI tự chơi với chính mình, nó dễ rơi vào vòng lặp kiểu oẳn tù tì: học “luôn ra kéo”, phiên bản sau học “luôn ra búa” để khắc chế, rồi lại “luôn ra bao”, mãi không hội tụ.</p>
+
+  <h3>Ba thành phần của Ataraxos</h3>
+  <div class="pipe">
+    <div><b>Tự chơi để học</b><span>Hai transformer: một mạng học cách xếp 40 quân, một mạng học chọn nước đi. Hai mạng huấn luyện cùng nhau bằng self-play.</span></div>
+    <div><b>Đoán bài úp</b><span>Một belief network học từ các ván tự chơi của phiên bản cuối, dự đoán quân ẩn của đối thủ là gì.</span></div>
+    <div><b>Suy nghĩ trước mỗi nước</b><span>Lấy mẫu nhiều “thế giới khả dĩ” từ belief network, chơi thử các nước ứng viên, rồi cập nhật chính sách thêm một bước.</span></div>
+  </div>
+  <p>Đó là mô tả chính thức của bài báo: hai quá trình self-play phụ thuộc lẫn nhau cho xếp quân và chọn nước, một belief network, và một thủ tục tìm kiếm lúc chơi kết hợp hai thứ còn lại<sup><a href="#r1">1</a></sup>. Hai mạng phụ thuộc nhau vì cách xếp quân tốt tùy vào việc sau đó bạn chơi giỏi đến đâu, và ngược lại.</p>
+
+  <h3>Giảm chấn: ý tưởng trung tâm</h3>
+  <p>Đây là lời giải cho vấn đề “chạy vòng tròn”. Ataraxos thêm vào hàm mất mát các số hạng phạt (regularization), kéo chính sách về phía đa dạng, không cực đoan, và không cho mỗi lần cập nhật đi quá xa chính sách cũ<sup><a href="#r1">1</a></sup>. Bản tái hiện độc lập liệt kê các thành phần theo đặc tả của bài báo: phạt entropy cho việc xếp quân, phạt reverse-KL kiểu proximal cho nước đi, clipping kiểu PPO, và các lịch giảm dần theo hàm lũy thừa cho mức phạt lẫn learning rate<sup><a href="#r8">8</a></sup>.</p>
+  <p>Mấu chốt là hai núm vặn phải đi cùng nhau: đầu quá trình tự chơi thì phạt mạnh và cập nhật mạnh tay, cuối quá trình thì phạt nhẹ và cập nhật nhỏ<sup><a href="#r1">1</a></sup>. Các tác giả ví regularization như một kho năng lượng: tiêu hết quá sớm thì tiến bộ nhanh lúc đầu nhưng mất khả năng học về sau<sup><a href="#r5">5</a></sup>.</p>
+  <p>Có thể hình dung như sau. Khi phạt mạnh, bài toán trở nên “dễ”: nó có một điểm cân bằng mượt và ổn định, và tự chơi hội tụ được về đó. Khi nới phạt dần, điểm cân bằng ấy dịch chuyển từ từ về phía chiến lược tối ưu thật của trò chơi, và AI chỉ việc đi theo. Cách làm này gần giống luyện kim: nung nóng để vật liệu dễ biến dạng, rồi nguội dần để định hình. Cơ sở lý thuyết đến từ công trình trước của chính Sokota về magnetic mirror descent, trong đó chính sách luôn bị một “nam châm” hút nhẹ nên quá trình học không dao động.</p>
+  <p>Thêm một mẹo tiết kiệm dữ liệu: chỉ giữ lại để huấn luyện những nước đi có advantage ước tính đủ lớn<sup><a href="#r8">8</a></sup>, tức là bỏ qua những nước chẳng tạo khác biệt và tập trung vào những quyết định thật sự quan trọng.</p>
+
+  <h3>Belief network: đoán bài úp</h3>
+  <p>Thay vì liệt kê mọi khả năng, Ataraxos học một mô hình sinh, cho phép lấy mẫu các cách sắp xếp quân ẩn theo đúng xác suất của chúng<sup><a href="#r1">1</a></sup>. Mô hình đoán quân ẩn lần lượt từng ô, giống cách một mô hình ngôn ngữ sinh từng token, và có ràng buộc bảo toàn số lượng quân: nó không thể đoán ra hai Thống chế khi mỗi bên chỉ có một<sup><a href="#r8">8</a></sup>.</p>
+  <p>Một chi tiết tinh tế: belief network học từ các ván tự chơi của chính Ataraxos<sup><a href="#r1">1</a></sup>. Nói cách khác, nó trả lời câu hỏi “nếu đối thủ chơi giống tôi thì quân kia nhiều khả năng là gì”. Gặp một người có phong cách khác, về lý thuyết các dự đoán này có thể lệch, vậy mà Ataraxos vẫn thắng áp đảo. Đây là nhận xét của trang này, không phải của bài báo, và là một câu hỏi đáng đặt ra.</p>
+
+  <h3>Tìm kiếm bằng cách học thêm một bước</h3>
+  <p>AlphaZero dùng cây tìm kiếm Monte Carlo, vốn thiết kế cho trò chơi thông tin hoàn hảo. Ataraxos làm khác hẳn: tìm kiếm của nó chỉ đơn giản là thực hiện thêm một bước cập nhật tự chơi có giảm chấn, áp dụng riêng cho quyết định đang xét<sup><a href="#r1">1</a></sup>. Trước mỗi nước, nó dùng belief network lấy mẫu nhiều thế cờ khả dĩ, chơi thử các nước ứng viên với độ sâu giới hạn trong từng thế cờ, rồi cập nhật chính sách tại chỗ<sup><a href="#r1">1</a></sup><sup><a href="#r8">8</a></sup>.</p>
+  <p>Các tác giả gọi đây là “update equivalence”: vì bước tìm kiếm tương đương với một bước học, nó thừa hưởng luôn các bảo đảm cải thiện của thuật toán học<sup><a href="#r1">1</a></sup>. Thay vì phát minh một thuật toán tìm kiếm mới cho trò chơi thông tin ẩn, họ biến tìm kiếm thành “học thêm một chút, ngay tại chỗ”. Các công trình trước đã bỏ qua kiểu tìm kiếm này vì cho rằng quá khó khi có nhiều thông tin ẩn<sup><a href="#r5">5</a></sup>.</p>
+
+  <h3>Những phát hiện chính</h3>
+  <ul class="rules">
+    <li><b>Ổn định đến từ sự phối hợp.</b> Mức phạt và cỡ bước cập nhật phải được điều chỉnh cùng nhau theo lịch, mạnh lúc đầu và nhẹ dần về sau. Nhờ đó tự chơi trong trò chơi thông tin ẩn không còn hỗn loạn<sup><a href="#r1">1</a></sup><sup><a href="#r10">10</a></sup>.</li>
+    <li><b>Tìm kiếm vẫn khả thi khi thông tin ẩn khổng lồ.</b> Ghép belief network với update equivalence cho phép “suy nghĩ” ở thời điểm chơi mà không phải liệt kê mọi khả năng<sup><a href="#r1">1</a></sup>.</li>
+    <li><b>Hiệu quả vượt bậc.</b> Khoảng 1/500 lượng tính toán, 1/30 số ván và 1/100 số mẫu so với DeepNash<sup><a href="#r10">10</a></sup>. Hệ thống học từ khoảng 163 triệu ván tự chơi<sup><a href="#r14">14</a></sup>.</li>
+    <li><b>Cùng một công thức, nhiều trò chơi.</b> Phương pháp này cũng thắng ba nhà vô địch Barrage Stratego qua bốn loạt 50 ván, và thắng PerfectDou ở Đấu Địa Chủ<sup><a href="#r10">10</a></sup>; ở Hanabi, trò bài hợp tác, nó đạt kết quả tốt nhất từ trước đến nay cho 2 đến 5 người chơi<sup><a href="#r15">15</a></sup>.</li>
+    <li><b>Kỹ thuật quan trọng không kém thuật toán.</b> Nhóm viết một bộ mô phỏng Stratego bằng CUDA chạy hẳn trên GPU, đạt khoảng 10 triệu lần cập nhật trạng thái mỗi giây trên một H100<sup><a href="#r7">7</a></sup>.</li>
+  </ul>
+
+  <h3>Bằng chứng từ một bản tái hiện thu nhỏ</h3>
+  <p>Một dự án độc lập trên GitHub tái hiện các cơ chế của Ataraxos trên bàn 4×4, mỗi bên bốn quân, chạy trên một GPU, rồi lần lượt tắt từng thành phần để xem đóng góp của mỗi phần<sup><a href="#r8">8</a></sup>. Đây không phải kết quả của bài báo gốc, và chỉ có ba seed, nhưng nó cho thấy trực quan vì sao từng mảnh ghép lại quan trọng.</p>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Thí nghiệm</th><th>Cấu hình</th><th>Kết quả</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="3">Tìm kiếm</td><td>Tìm kiếm đầy đủ, dùng belief network</td><td>Tỷ lệ thắng hiệu dụng 75,8%</td></tr>
+      <tr><td>Không tìm kiếm, chỉ dùng mạng chính sách</td><td>51,8%</td></tr>
+      <tr><td>Tìm kiếm nhưng belief đồng đều (không đoán bài)</td><td>52,8%</td></tr>
+      <tr><td rowspan="3">Giảm chấn</td><td>Đầy đủ</td><td>Điểm kỳ vọng +0,119</td></tr>
+      <tr><td>Bỏ lịch giảm dần mức phạt</td><td>−0,094</td></tr>
+      <tr><td>Không phạt gì</td><td>−0,056</td></tr>
+    </tbody>
+  </table></div>
+  <p>Hai điều rút ra: tìm kiếm mà đoán bài kém thì gần như vô dụng, và cả “không giảm chấn” lẫn “giảm chấn mà không nới dần” đều cho kết quả tệ.</p>
+
+  <h3>Giá trị của phương pháp</h3>
+  <p><b>Đưa bài toán về tầm với của nhóm nhỏ.</b> Trước đây, AI siêu nhân cho trò chơi thông tin ẩn quy mô lớn gần như chỉ dành cho các phòng lab có hàng triệu USD tính toán. Với vài nghìn USD, một phòng lab đại học hay một nhóm nhỏ có thể tái hiện và mở rộng. Code và trọng số đã được công bố theo giấy phép MIT<sup><a href="#r14">14</a></sup><sup><a href="#r4">4</a></sup>.</p>
+  <p><b>Một khung chung cho học và suy nghĩ.</b> Cùng một nguyên lý regularization chi phối cả lúc huấn luyện lẫn lúc tìm kiếm, nên cải tiến ở phần này mang lợi ích sang phần kia. Sokota mô tả đây là các kỹ thuật tổng quát cho RL và test-time compute dưới thông tin không hoàn hảo, không phải mẹo riêng cho Stratego<sup><a href="#r6">6</a></sup>.</p>
+  <p><b>Hướng ra ngoài trò chơi.</b> Các tác giả cho rằng lượng thông tin ẩn lớn không còn là rào cản, miễn là có bộ mô phỏng nhanh và chính xác, và nêu thị trường tài chính, xung đột quân sự, đàm phán làm ví dụ<sup><a href="#r5">5</a></sup>. Điều kiện “có bộ mô phỏng” rất quan trọng: luật chơi của game là cố định và biết trước, còn ngoài đời, xây được mô phỏng đủ tốt thường mới là phần khó nhất.</p>
+
+  <h3>Hạn chế và câu hỏi mở</h3>
+  <ul class="rules">
+    <li>Không có trận đối đầu trực tiếp giữa Ataraxos và DeepNash, vì theo DeepMind, code DeepNash không còn chạy được<sup><a href="#r5">5</a></sup>.</li>
+    <li>Tìm kiếm chỉ mô phỏng một bước học, nên cho thêm thời gian suy nghĩ không làm AI mạnh lên tương ứng<sup><a href="#r5">5</a></sup>, khác với AlphaZero.</li>
+    <li>Con số chi phí là tổng chung, chưa tách phần nào cho Stratego, phần nào cho các trò khác, và chưa nói bao nhiêu lần chạy đã bị bỏ đi trước khi ra kết quả.</li>
+    <li>Ataraxos không thích nghi với từng đối thủ trong loạt ván, còn Niemeijer thì có thể điều chỉnh qua từng ván<sup><a href="#r5">5</a></sup>. Đây vừa là bất lợi của AI, vừa là hướng phát triển tiếp.</li>
+    <li>Câu hỏi đáng đặt ra: belief network học từ chính mình thì được hiệu chỉnh tốt đến đâu khi gặp người chơi có phong cách khác? Công thức này có chuyển được sang các bài toán có hành động liên tục như đấu giá hay đàm phán không?</li>
+  </ul>
+  <p>Về phong cách, các kỳ thủ mô tả lối chơi của Ataraxos là khó đọc: nó bluff ở những chỗ người thấy quá rủi ro, và khi bị dẫn thì câu giờ lì lợm<sup><a href="#r5">5</a></sup>. Những người theo dõi còn nhận xét nó có vẻ “may mắn đến kỳ lạ” trong cách đặt quân<sup><a href="#r15">15</a></sup>, đúng loại khoảnh khắc mà ván minh họa ở trên cố gắng tái hiện.</p>
+</section>
+
+<section class="col" id="tham-khao">
+  <h2>Tài liệu tham khảo</h2>
+  <ol class="refs">
+    <li id="r1">Sokota, S. và cộng sự. “Scalable decision-making for games of imperfect information.” <i>Nature</i> 658, 55–59 (2026). <a href="https://www.nature.com/articles/s41586-026-11036-y">nature.com/articles/s41586-026-11036-y</a></li>
+    <li id="r2">Bản preprint của bài báo trên arXiv, mã 2511.07312. <a href="https://arxiv.org/pdf/2511.07312">arxiv.org/pdf/2511.07312</a></li>
+    <li id="r3">Ataraxos vs. Pim Niemeijer, kho lưu trữ 20 ván (video). <a href="https://ataraxosai.github.io/">ataraxosai.github.io</a></li>
+    <li id="r4">Mã nguồn Ataraxos. <a href="https://github.com/AtaraxosAI">github.com/AtaraxosAI</a></li>
+    <li id="r5">The Decoder. “AI beats Stratego’s greatest player, ending one of the last human strongholds in board games” (10/2026). <a href="https://the-decoder.com/ai-beats-strategos-greatest-player-ending-one-of-the-last-human-strongholds-in-board-games/">the-decoder.com</a></li>
+    <li id="r6">Samuel Sokota, chuỗi bài giới thiệu trên X (30/9/2026). <a href="https://x.com/ssokota/status/2105362024238887176">x.com/ssokota</a></li>
+    <li id="r7">Emergent Mind, tóm tắt bài báo arXiv 2511.07312. <a href="https://www.emergentmind.com/papers/2511.07312">emergentmind.com/papers/2511.07312</a></li>
+    <li id="r8">micro-ataraxos: bản tái hiện cơ chế trên Micro-Stratego 4×4 (dự án độc lập). <a href="https://github.com/aiyu221b3/micro-ataraxos">github.com/aiyu221b3/micro-ataraxos</a></li>
+    <li id="r9">Perolat, J. và cộng sự. “Mastering the Game of Stratego with Model-Free Multiagent Reinforcement Learning” (DeepNash), arXiv 2206.15378. <a href="https://arxiv.org/pdf/2206.15378v1.pdf">arxiv.org/pdf/2206.15378</a></li>
+    <li id="r10">AI Weekly. “Ataraxos beats top human Stratego player, 1/500 the compute” và “Ataraxos AI beats top Stratego champion with 1/500th compute” (10/2026). <a href="https://aiweekly.co/alerts/ataraxos-beats-top-human-stratego-player-1500-the-compute">aiweekly.co</a>, <a href="https://aiweekly.co/alerts/ataraxos-ai-beats-top-stratego-champion-with-1500th-compute">aiweekly.co</a></li>
+    <li id="r11">Diario Bitcoin. “Ataraxos derrota al mejor jugador de Stratego…” (10/2026). <a href="https://www.diariobitcoin.com/tecnologia/ataraxos-derrota-al-mejor-jugador-de-stratego-y-cambia-el-panorama-de-la-ia-en-los-juegos/">diariobitcoin.com</a></li>
+    <li id="r12">Clubic. “Après les échecs et le Go, l’IA fait tomber Stratego…” (10/2026). <a href="https://www.clubic.com/actualite-632185-apres-les-echecs-et-le-go-l-ia-fait-tomber-stratego-l-un-des-derniers-refuges-de-l-humain.html">clubic.com</a></li>
+    <li id="r13">Infobae. “Una IA le ganó al mejor jugador de Stratego de la historia…” (1/10/2026). <a href="https://www.infobae.com/tecno/2026/10/01/una-ia-le-gano-al-mejor-jugador-de-stratego-de-la-historia-con-un-entrenamiento-de-apenas-usd-8000/">infobae.com</a></li>
+    <li id="r14">AI TL;DR. “CMU Ataraxos Stratego.” <a href="https://ai-tldr.dev/releases/cmu-ataraxos-stratego/">ai-tldr.dev</a></li>
+    <li id="r15">AI Weekly. “Ataraxos AI beats Stratego champion Niemeijer 15-1-4” (10/2026). <a href="https://aiweekly.co/alerts/ataraxos-ai-beats-stratego-champion-niemeijer-15-1-4">aiweekly.co</a></li>
+  </ol>
+</section>
+</main>
+
+<footer class="col">
+  <p>Soạn tháng 11/2026. Hai ván trên trang là ván dựng sẵn để minh họa luật và chiến thuật, không phải dữ liệu từ các ván đấu thật của Ataraxos.</p>
+</footer>
+</div>
+</div>
+</div>
+
+<script>
+(function(){
+const ICON={
+  B:'<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="10" r="4.6" fill="currentColor"/><path d="M10.2 6.6l2-2M12.6 2.2v1.6M14.4 4h-1.6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>',
+  F:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.8v12.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4.6 2.6h8.2l-2.2 3.2 2.2 3.2H4.6z" fill="currentColor"/></svg>'
+};
+const NAME={"10":"Thống chế","9":"Đại tướng","8":"Đại tá","7":"Thiếu tá","6":"Đại úy","5":"Trung úy","4":"Trung sĩ","3":"Công binh","2":"Trinh sát","S":"Gián điệp","B":"Bom","F":"Cờ"};
+const ORDER=["10","9","8","7","6","5","4","3","2","S","B","F"];
+const lab=k=>ICON[k]||k;
+document.querySelectorAll(".chip[data-icon]").forEach(el=>{el.innerHTML=ICON[el.dataset.icon]});
+
+/* hero tiles */
+const strip=document.getElementById("strip");
+"7 2 6 2 8 5 2 3 4 7".split(" ").forEach((k,i)=>{
+  const b=document.createElement("button");
+  b.className="tile";b.type="button";
+  b.setAttribute("aria-label","Quân úp mặt thứ "+(i+1)+", bấm để lật");
+  b.innerHTML='<span class="tile-in"><span class="face back"></span><span class="face front">'+k+'</span></span>';
+  b.addEventListener("click",()=>{
+    const f=b.classList.toggle("flipped");
+    b.setAttribute("aria-label",f?("Quân thứ "+(i+1)+": "+NAME[k]+" ("+k+")"):("Quân úp mặt thứ "+(i+1)+", bấm để lật"));
+  });
+  strip.appendChild(b);
+});
+
+/* engine */
+const val=k=>k==="S"?1:k==="F"?0:+k;
+function resolve(b,m){
+  const a=b[m[0]],d=b[m[1]];
+  if(!d){b[m[1]]=a;delete b[m[0]];return null}
+  a.v=d.v=true;let w;
+  if(d.k==="F")w="a";
+  else if(d.k==="B")w=a.k==="3"?"a":"d";
+  else if(a.k==="S"&&d.k==="10")w="a";
+  else{const x=val(a.k),y=val(d.k);w=x>y?"a":x<y?"d":"t"}
+  if(w==="a"){b[m[1]]=a;delete b[m[0]]}
+  else if(w==="d"){delete b[m[0]]}
+  else{delete b[m[0]];delete b[m[1]]}
+  return {a:a.k,d:d.k,w};
+}
+function setupFromRows(rows,side,cols){
+  const out={};
+  for(const r in rows)rows[r].split(" ").forEach((k,i)=>{out[cols[i]+r]=[side,k]});
+  return out;
+}
+
+function makeReplay(el,cfg){
+  const COLS="ABCDEFGHIJ".slice(0,cfg.cols);
+  const init={};
+  for(const sq in cfg.setup){const p=cfg.setup[sq];init[sq]={s:p[0],k:p[1],v:false}}
+  const S=[init],RES=[null],SIDE=[null];
+  cfg.moves.forEach(m=>{
+    const prev=S[S.length-1];
+    SIDE.push(prev[m[0]]?prev[m[0]].s:"?");
+    const b=JSON.parse(JSON.stringify(prev));
+    RES.push(resolve(b,m));S.push(b);
+  });
+  const total=cfg.moves.length;
+  const ALL={R:{},B:{}};
+  Object.values(init).forEach(p=>{ALL[p.s][p.k]=(ALL[p.s][p.k]||0)+1});
+  let i=0,view=cfg.hidden?"R":"A",timer=null;
+
+  el.innerHTML=
+    '<div class="rp-left">'+
+      '<div class="rp-board" style="grid-template-columns:1.1rem repeat('+cfg.cols+',minmax(0,1fr))"></div>'+
+      '<div class="rp-ctl">'+
+        '<button type="button" data-a="first">Về đầu</button>'+
+        '<button type="button" data-a="prev">Trước</button>'+
+        '<button type="button" data-a="play">Tự chạy</button>'+
+        '<button type="button" data-a="next">Sau</button>'+
+        '<button type="button" data-a="last">Về cuối</button>'+
+        '<span class="rp-count"></span>'+
+      '</div>'+
+      '<input class="rp-range" type="range" min="0" max="'+total+'" step="1" value="0" aria-label="Chọn nước">'+
+      (cfg.hidden?'<div class="rp-view">Góc nhìn <button type="button" data-v="R">Đỏ</button><button type="button" data-v="A">Hiện tất cả</button></div>':'')+
+      '<p class="legend">Màu nhạt: chưa đụng độ. Màu đậm: đã lộ. Viền vàng liền: ô đến. Viền vàng đứt: ô đi.</p>'+
+    '</div>'+
+    '<div class="rp-notes" aria-live="polite">'+
+      '<p class="rp-mv"></p><h4 class="rp-tt"></h4><p class="rp-tx"></p><p class="rp-rs"></p><p class="rp-ls"></p>'+
+    '</div>';
+
+  const q=s=>el.querySelector(s);
+  const board=q(".rp-board"),range=q(".rp-range"),playBtn=q('[data-a="play"]');
+
+  function lost(b,s){
+    const now={};Object.values(b).forEach(p=>{if(p.s===s)now[p.k]=(now[p.k]||0)+1});
+    const out=[];
+    ORDER.forEach(k=>{const n=(ALL[s][k]||0)-(now[k]||0);for(let j=0;j<n;j++)out.push(k==="B"?"bom":k==="F"?"cờ":k)});
+    return out.length?out.join(", "):"chưa mất quân nào";
+  }
+  function render(){
+    const b=S[i],m=i?cfg.moves[i-1]:null;
+    let h="";
+    for(let r=cfg.rows;r>=1;r--){
+      h+='<div class="cell lbl">'+r+'</div>';
+      for(let c=0;c<cfg.cols;c++){
+        const sq=COLS[c]+r,p=b[sq];
+        let cls="cell",t="",desc=sq;
+        if(cfg.lakes.includes(sq)){cls+=" lake";desc+=", hồ nước"}
+        else if(p){
+          const show=p.s==="R"||p.v||view==="A";
+          cls+=p.s==="R"?(p.v?" rv":" rh"):(p.v?" bv":" bh");
+          t=show?lab(p.k):"";
+          desc+=", "+(p.s==="R"?"Đỏ":"Xanh")+(show?" "+NAME[p.k]:" chưa rõ");
+        }
+        if(m&&sq===m[1])cls+=" to";
+        if(m&&sq===m[0])cls+=" fr";
+        h+='<div class="'+cls+'" title="'+desc+'">'+t+'</div>';
+      }
+    }
+    h+='<div class="cell lbl"></div>';
+    for(let c=0;c<cfg.cols;c++)h+='<div class="cell lbl">'+COLS[c]+'</div>';
+    board.innerHTML=h;
+    q(".rp-count").textContent="Nước "+i+" / "+total;
+    range.value=i;
+    q(".rp-mv").textContent=m?("Nước "+i+", "+(SIDE[i]==="R"?"Đỏ":"Xanh")+" đi "+m[0]+" sang "+m[1]):"Trước khi bắt đầu";
+    q(".rp-tt").textContent=m?m[2]:cfg.intro[0];
+    q(".rp-tx").textContent=m?m[3]:cfg.intro[1];
+    const rs=RES[i];let rt="";
+    if(rs){
+      if(rs.d==="F")rt="Cờ bị bắt. "+(SIDE[i]==="R"?"Đỏ":"Xanh")+" thắng ván.";
+      else rt=NAME[rs.a]+" ("+rs.a+") đánh "+NAME[rs.d]+(rs.d==="B"?"":" ("+rs.d+")")+": "+(rs.w==="a"?"bên tấn công thắng.":rs.w==="d"?"bên tấn công thua.":"cả hai cùng mất.");
+    }
+    q(".rp-rs").textContent=rt;
+    q(".rp-ls").textContent="Đỏ đã mất: "+lost(b,"R")+". Xanh đã mất: "+lost(b,"B")+".";
+    el.querySelectorAll("[data-v]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===view?"true":"false"));
+  }
+  function stop(){if(timer){clearInterval(timer);timer=null}playBtn.textContent="Tự chạy"}
+  function go(n){i=Math.max(0,Math.min(total,n));render();if(i===total)stop()}
+  el.addEventListener("click",e=>{
+    const a=e.target.closest("[data-a]"),v=e.target.closest("[data-v]");
+    if(v){view=v.dataset.v;render();return}
+    if(!a)return;
+    const act=a.dataset.a;
+    if(act==="play"){
+      if(timer){stop();return}
+      if(i===total)go(0);
+      timer=setInterval(()=>go(i+1),2400);playBtn.textContent="Dừng";return;
+    }
+    stop();
+    if(act==="first")go(0);else if(act==="last")go(total);else if(act==="prev")go(i-1);else if(act==="next")go(i+1);
+  });
+  range.addEventListener("input",e=>{stop();go(+e.target.value)});
+  el.addEventListener("keydown",e=>{
+    if(e.target.tagName==="INPUT")return;
+    if(e.key==="ArrowRight"){e.preventDefault();stop();go(i+1)}
+    if(e.key==="ArrowLeft"){e.preventDefault();stop();go(i-1)}
+  });
+  render();
+}
+
+/* mini tutorial */
+makeReplay(document.getElementById("rp-mini"),{
+  cols:6,rows:6,lakes:["C3","C4"],hidden:false,
+  setup:{A1:["R","2"],B1:["R","F"],B2:["R","4"],D2:["R","S"],E3:["R","3"],F2:["R","10"],
+         A6:["B","2"],B5:["B","7"],D4:["B","10"],D6:["B","6"],E4:["B","B"],E5:["B","F"],E6:["B","B"],F3:["B","S"],F4:["B","B"]},
+  intro:["Bàn tập 6×6","Đỏ đi từ dưới lên, Xanh từ trên xuống, hồ nước ở C3 và C4. Ở bàn tập, mọi quân đều hiện cấp bậc để bạn dễ theo dõi. Màu nhạt nghĩa là quân đó chưa đụng độ lần nào, màu đậm là đã lộ."],
+  moves:[
+    ["B2","B3","Đi một ô","Phần lớn quân chỉ đi đúng một ô mỗi lượt, theo hàng ngang hoặc dọc. Không đi chéo, không nhảy qua quân khác hay hồ nước."],
+    ["B5","B4","Đứng kề chưa phải là đánh","Thiếu tá Xanh (7) tiến xuống, đứng ngay trước quân Đỏ. Chưa có gì xảy ra: chỉ khi một bên đi vào ô của bên kia thì mới đánh nhau."],
+    ["A1","A5","Trinh sát đi xa","Trinh sát (2) là quân duy nhất đi được nhiều ô trong một lượt, giống quân xe trong cờ vua, miễn là đường đi trống."],
+    ["B4","B3","Cấp cao thắng","Thiếu tá (7) đánh Trung sĩ (4). Hai quân lật lên, quân cấp thấp hơn rời bàn, quân thắng đứng vào ô đó."],
+    ["A5","A6","Bằng cấp thì cùng mất","Hai Trinh sát gặp nhau, cả hai cùng rời bàn."],
+    ["D4","D3","Thống chế tiến","Thống chế Xanh (10), quân mạnh nhất, bước xuống đứng kề Gián điệp Đỏ."],
+    ["D2","D3","Gián điệp hạ Thống chế","Gián điệp là quân yếu nhất, nhưng nếu nó chủ động tấn công Thống chế thì nó thắng. Đây là luật đặc biệt quan trọng nhất của Stratego."],
+    ["D6","D5","Lượt nào cũng phải đi","Mỗi lượt bắt buộc phải đi một quân, không được bỏ lượt. Xanh đưa Đại úy (6) lên."],
+    ["F2","F3","Gián điệp bị đánh thì thua","Thống chế Đỏ đánh Gián điệp Xanh và thắng. Gián điệp chỉ thắng Thống chế khi chính nó là bên tấn công."],
+    ["D5","D4","Nhắm mục tiêu","Đại úy Xanh tiến thêm một ô, nhắm vào Gián điệp Đỏ đang đứng ở D3."],
+    ["F3","F4","Ngay cả Thống chế cũng chết vì bom","Thống chế Đỏ đánh vào F4, và đó là bom. Bất kỳ quân nào, trừ Công binh, đụng bom đều rời bàn, còn bom thì ở nguyên chỗ."],
+    ["D4","D3","Gián điệp rất mong manh","Đại úy Xanh ăn Gián điệp Đỏ. Ngoài pha hạ Thống chế, Gián điệp thua mọi quân khác."],
+    ["E3","E4","Công binh gỡ bom","Công binh (3) là quân duy nhất gỡ được bom. Bom bị loại, Công binh đứng vào ô đó."],
+    ["D3","E3","Đuổi theo","Đại úy Xanh quay sang đuổi Công binh, nhưng đã chậm một nhịp."],
+    ["E4","E5","Bắt Cờ","Công binh đánh vào E5, nơi Xanh giấu Cờ. Bắt được Cờ là thắng ván. Cờ và bom không bao giờ di chuyển được, nên vị trí của chúng là bí mật quan trọng nhất."]
+  ]
+});
+
+/* classic illustrative game */
+const C10="ABCDEFGHIJ";
+const classicSetup=Object.assign(
+  setupFromRows({1:"3 B F B 4 5 2 3 4 6",2:"2 5 B 6 7 S 3 B 5 2",3:"4 7 2 8 3 10 6 9 2 B",4:"2 6 B 2 4 8 2 7 3 5"},"R",C10),
+  setupFromRows({7:"7 2 6 2 8 5 2 3 4 7",8:"2 8 5 10 2 3 9 6 2 4",9:"B B 2 6 S 7 4 3 B 5",10:"B 4 B 5 3 2 6 B F 3"},"B",C10)
+);
+makeReplay(document.getElementById("rp-classic"),{
+  cols:10,rows:10,lakes:["C5","D5","G5","H5","C6","D6","G6","H6"],hidden:true,setup:classicSetup,
+  intro:["Bàn cờ ban đầu","Đỏ ở dưới (hàng 1 đến 4), Xanh ở trên (hàng 7 đến 10). Hai hồ nước chia bàn ra ba lối đi: cột A–B, E–F và I–J. Ở góc nhìn Đỏ, bạn thấy hết quân Đỏ, còn quân Xanh chỉ hiện khi đã đụng độ. Đỏ giấu Cờ ở C1, bọc bom ở B1, D1 và C2."],
+  moves:[
+    ["A4","A7","Trinh sát đi soi","Trinh sát Đỏ chạy thẳng ba ô theo cột A và đâm vào quân ở A7. Nó chết, nhưng Đỏ biết A7 là Thiếu tá (7). Trinh sát là quân rẻ nhất, nên thường được dùng để mua thông tin."],
+    ["B7","B4","Xanh trả đũa","Xanh làm y hệt: hy sinh Trinh sát để lộ Đại úy (6) của Đỏ ở B4. Mỗi bên mất một quân, mỗi bên biết thêm một quân."],
+    ["E4","E5","Một quân tiến ra giữa","Đỏ đẩy một quân lên lối giữa. Thực ra đó chỉ là Trung sĩ (4), nhưng Xanh không biết."],
+    ["F7","F6","Đối mặt","Xanh đưa một quân ra chắn ở cột F."],
+    ["E5","E6","Bluff","Đỏ tiếp tục ép, áp sát hai quân Xanh. Đây là bluff: quân yếu đi như quân mạnh. Người chơi hay nghĩ quân dám lao sớm vào vùng địch là quân lớn."],
+    ["F6","F7","Bluff có tác dụng","Xanh rút lui, dù quân này là Trung úy (5), lẽ ra thắng được Trung sĩ của Đỏ. Đỏ cũng ghi nhận: quân rút khi bị dọa thì có lẽ không mạnh. Đó là một manh mối để cập nhật niềm tin về quân này."],
+    ["F4","F5","Quân thật theo sau","Đại tá (8) thật của Đỏ lặng lẽ đi theo sau quân bluff."],
+    ["E7","E6","Xanh kiểm tra","Xanh dùng Đại tá (8) đánh thử và ăn Trung sĩ. Bluff kết thúc, nhưng nó đã mua được mấy nhịp và buộc Xanh lộ một quân lớn."],
+    ["F5","F6","Đặt câu hỏi cho Xanh","Đỏ đưa quân 8 của mình lên kề quân 8 vừa lộ. Giờ đến lượt Xanh phải đoán: quân ở F6 lớn hay nhỏ?"],
+    ["E6","F6","Đổi ngang","Xanh đánh: 8 gặp 8, cả hai cùng mất. Một quân đã lộ mặt dễ bị đối thủ chọn đúng quân để đổi."],
+    ["E3","E4","Công binh lên đường","Đỏ đưa một Công binh (3) lên lối giữa."],
+    ["E8","E7","Dọn đường","Xanh đưa một quân lên, mở lối ở trung tâm."],
+    ["E4","E5","Tiếp tục tiến","Công binh Đỏ tiến thêm một ô."],
+    ["D8","E8","Một quân lớn thức dậy","Một quân Xanh ở hàng sau bước ra lối giữa. Đỏ chưa biết đó là gì. Bật “Hiện tất cả” nếu muốn xem trước."],
+    ["E5","E6","Ép sát","Công binh Đỏ áp sát quân Xanh ở E7."],
+    ["E7","E6","Soi bằng Trinh sát","Quân ở E7 là Trinh sát, đâm vào và thua. Nhưng Xanh biết được E6 là Công binh (3), một quân yếu, dễ ăn."],
+    ["F3","F4","Thống chế Đỏ âm thầm tiến","Thống chế (10) của Đỏ dịch lên một ô. Không ai biết, vì nó chưa từng đụng độ."],
+    ["E8","E7","Săn mồi","Quân lớn của Xanh áp sát Công binh đã lộ."],
+    ["E6","E5","Mồi nhử","Công binh lùi về phía trại Đỏ. Đã lộ và yếu, nó được dùng làm mồi kéo quân lớn kia đi sâu."],
+    ["E7","E6","Đuổi theo","Xanh đuổi. Với Đỏ, một quân chưa lộ mà dám đuổi sâu như vậy rất có thể là quân cấp cao nhất."],
+    ["F2","F3","Một nước trông vô hại","Gián điệp (S) của Đỏ rời hàng sau."],
+    ["E6","E5","Thống chế lộ mặt","Quân Xanh ăn Công binh và phải lộ mặt: đó là Thống chế (10). Niềm tin của Đỏ được xác nhận."],
+    ["F3","E3","Giăng bẫy","Gián điệp vào vị trí ngay sau ô E4. Đỏ cũng có Thống chế ở F4 có thể đổi 10 lấy 10, nhưng dùng Gián điệp thì rẻ hơn nhiều."],
+    ["E5","E4","Đi quá sâu","Thống chế Xanh lấn tiếp, kề ba quân Đỏ chưa lộ. Nước này có vẻ an toàn: Thống chế chỉ sợ Gián điệp, mà Gián điệp thường giấu ở xa."],
+    ["E3","E4","Gián điệp ra đòn","Gián điệp tấn công Thống chế và thắng. Bước ngoặt: Xanh mất quân mạnh nhất, còn Thống chế Đỏ vẫn ẩn. Cảm giác quân của AI luôn đứng đúng chỗ mà các kỳ thủ mô tả về Ataraxos chính là kiểu khoảnh khắc này."],
+    ["E9","E8","Một quân đáng ngờ","Một quân Xanh ở hàng sau bước lên. Từ giờ Thống chế Đỏ là quân mạnh nhất bàn, chỉ phải sợ bom và Gián điệp Xanh. Quân ra muộn này cần được để ý."],
+    ["F4","F5","Càn quét","Thống chế Đỏ bắt đầu tiến lên."],
+    ["J7","J6","Phản công cánh phải","Xanh mở mặt trận ở cột J để gây áp lực lên trại Đỏ."],
+    ["F5","F6","Áp sát","Thống chế Đỏ tiếp tục tiến."],
+    ["J6","J5","Tiến xuống","Quân Xanh ở cánh phải áp sát trại Đỏ."],
+    ["F6","F7","Ăn quân từng rút lui","Thống chế Đỏ ăn Trung úy (5), chính quân đã rút ở nước 6, và lộ mặt."],
+    ["J5","J4","Xanh xâm nhập","Thiếu tá Xanh (7) ăn Trung úy Đỏ (5), lọt vào trại Đỏ."],
+    ["F7","G7","Né vùng nguy hiểm","Đỏ ăn Trinh sát ở G7. Để ý: Đỏ không đi E7 hay F8, hai ô kề quân đáng ngờ ở E8."],
+    ["J4","I4","Phá trại","Thiếu tá Xanh ăn tiếp một Công binh Đỏ."],
+    ["G7","G8","Hạ Đại tướng","Thống chế Đỏ ăn Đại tướng (9). Xanh đã mất cả hai quân lớn nhất."],
+    ["F8","F7","Dọn ô cho sát thủ","Xanh rút quân khỏi F8, mở chỗ cho quân ở E8 bước vào và đứng kề Thống chế Đỏ."],
+    ["G8","H8","Đọc được ý đồ","Đỏ né ngay. Một ô vừa được dọn cạnh mình, cạnh một quân bí ẩn ra muộn: xác suất cao đó là Gián điệp. Đây là kiểu suy luận mà belief network làm: không chắc chắn, nhưng đủ để né."],
+    ["I4","I3","Tiếp tục phá","Thiếu tá Xanh ăn Trinh sát Đỏ ở I3."],
+    ["H8","I8","Về góc phải","Thống chế Đỏ tiến về phía góc phải."],
+    ["I3","H3","Đâm vào tường","Thiếu tá Xanh đánh vào H3 và gặp Đại tướng (9) đang ẩn của Đỏ. Cuộc phản công kết thúc."],
+    ["I8","J8","Đi vòng","Đỏ không đụng vào I9: quân đó chưa từng di chuyển và đứng sát góc, rất có thể là bom. Đỏ đi vòng qua cột J."],
+    ["E8","F8","Quá muộn","Gián điệp Xanh cố đuổi theo, nhưng đã quá xa."],
+    ["J8","J9","Mở đường","Thống chế Đỏ ăn tiếp."],
+    ["F8","G8","Vẫn đuổi","Gián điệp Xanh vẫn đuổi."],
+    ["J9","J10","Hàng cuối","Thống chế Đỏ đến hàng cuối cùng của Xanh."],
+    ["G8","H8","Không kịp","Gián điệp Xanh vẫn còn cách hai ô."],
+    ["J10","I10","Bắt được Cờ","Đỏ thắng. Bật “Hiện tất cả” để thấy sự thật: cụm bom ở góc trái (A9, A10, B9, C10) chỉ là pháo đài giả, còn Cờ thật ở I10 được bom H10 và I9 che. Nếu đưa Công binh sang góc trái, Đỏ đã phí rất nhiều nước."]
+  ]
+});
+})();
+</script>
+</body>
+</html>
